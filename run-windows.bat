@@ -2,7 +2,10 @@
 REM Setup + run PHP backend & frontend on Windows (DB on VPS - no local DB needed)
 cd /d "%~dp0"
 
-echo === [1/5] Check PHP pgsql extension ===
+echo === [1/5] Check required tools ===
+where php >nul 2>nul || (echo [ERROR] PHP not found in PATH. Install PHP 8.x first. & pause & exit /b 1)
+where composer >nul 2>nul || (echo [ERROR] Composer not found in PATH. Install from getcomposer.org & pause & exit /b 1)
+where npm >nul 2>nul || (echo [ERROR] Node.js/npm not found in PATH. Install from nodejs.org & pause & exit /b 1)
 php -m | findstr /i pdo_pgsql >nul || (
     echo [ERROR] PHP is missing pdo_pgsql extension.
     echo Open php.ini and enable: extension=pdo_pgsql and extension=pgsql
