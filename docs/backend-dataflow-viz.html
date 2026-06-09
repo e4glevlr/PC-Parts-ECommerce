@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend Data Flow Visualization - Checkout Process</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --text-color: #f8fafc;
+            --primary: #3b82f6;
+            --secondary: #8b5cf6;
+            --accent: #10b981;
+            --card-bg: rgba(30, 41, 59, 0.6);
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 3rem 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background: radial-gradient(circle at 80% 20%, #1e1b4b, #0f172a 70%);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            text-align: center;
+            background: linear-gradient(to right, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(96, 165, 250, 0.3);
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            margin-bottom: 3rem;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .container {
+            display: flex;
+            gap: 4rem;
+            max-width: 1300px;
+            width: 100%;
+        }
+
+        /* Flow Diagram Styles */
+        .flow-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: relative;
+        }
+
+        .flow-line {
+            position: absolute;
+            left: 28px;
+            top: 30px;
+            bottom: 30px;
+            width: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            z-index: 0;
+        }
+
+        .flow-progress {
+            position: absolute;
+            left: 28px;
+            top: 30px;
+            width: 4px;
+            height: 0%;
+            background: linear-gradient(to bottom, var(--primary), var(--secondary));
+            border-radius: 4px;
+            z-index: 1;
+            transition: height 0.5s ease;
+            box-shadow: 0 0 15px var(--primary);
+        }
+
+        .particle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border-radius: 50%;
+            top: 0;
+            left: 24px;
+            box-shadow: 0 0 15px #fff, 0 0 30px var(--primary);
+            z-index: 2;
+            transition: top 0.5s ease;
+            opacity: 0;
+        }
+
+        .node {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            position: relative;
+            z-index: 3;
+            cursor: pointer;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0.7;
+        }
+
+        .node:hover {
+            transform: translateX(10px);
+            opacity: 1;
+        }
+
+        .node.active {
+            opacity: 1;
+            transform: translateX(15px);
+        }
+
+        .node-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--bg-color);
+            border: 4px solid #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            transition: all 0.4s ease;
+            flex-shrink: 0;
+        }
+
+        .node:hover .node-icon {
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .node.active .node-icon {
+            border-color: var(--secondary);
+            background: var(--secondary);
+            color: white;
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
+            transform: scale(1.1);
+        }
+
+        .node.completed .node-icon {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--primary);
+        }
+
+        .node-content {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            padding: 1.25rem 1.5rem;
+            border-radius: 16px;
+            flex: 1;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .node.active .node-content {
+            border-color: rgba(139, 92, 246, 0.5);
+            background: rgba(30, 41, 59, 0.9);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(139, 92, 246, 0.3);
+        }
+
+        .node-content h3 {
+            margin: 0 0 0.5rem 0;
+            color: #e2e8f0;
+            font-size: 1.1rem;
+        }
+
+        .node-content p {
+            margin: 0;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        /* Code Viewer Styles */
+        .code-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 2rem;
+            height: calc(100vh - 8rem);
+        }
+
+        .code-container {
+            flex: 1;
+            background: #0d1117;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .code-header {
+            background: #161b22;
+            padding: 1rem 1.5rem;
+            font-size: 0.9rem;
+            color: #8b949e;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .dot.red { background: #ff5f56; }
+        .dot.yellow { background: #ffbd2e; }
+        .dot.green { background: #27c93f; }
+
+        .code-content {
+            padding: 1.5rem;
+            margin: 0;
+            overflow-y: auto;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #c9d1d9;
+            flex: 1;
+        }
+
+        /* Syntax Highlighting */
+        .kw { color: #ff7b72; font-weight: 600; } /* Keywords */
+        .fn { color: #d2a8ff; } /* Functions */
+        .vr { color: #79c0ff; } /* Variables */
+        .st { color: #a5d6ff; } /* Strings */
+        .cm { color: #8b949e; font-style: italic; } /* Comments */
+        .op { color: #ff7b72; } /* Operators */
+        .cl { color: #f0883e; } /* Classes */
+
+        .code-transition {
+            animation: fadeSwap 0.4s ease-in-out;
+        }
+
+        @keyframes fadeSwap {
+            0% { opacity: 0; transform: translateY(5px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Glass decorative elements */
+        .glass-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            opacity: 0.4;
+        }
+        .blob-1 {
+            top: 10%; left: 10%; width: 300px; height: 300px; background: var(--primary);
+        }
+        .blob-2 {
+            bottom: 10%; right: 10%; width: 400px; height: 400px; background: var(--secondary);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glass-blob blob-1"></div>
+    <div class="glass-blob blob-2"></div>
+
+    <h1>Checkout Data Flow</h1>
+    <div class="subtitle">Interactive visualization of OrderService::createFromCart transaction</div>
+
+    <div class="container">
+        <!-- Flow Diagram -->
+        <div class="flow-container" id="flow-container">
+            <div class="flow-line"></div>
+            <div class="flow-progress" id="flow-progress"></div>
+            <div class="particle" id="particle"></div>
+
+            <div class="node active" data-step="1" onclick="selectNode(1)">
+                <div class="node-icon">1</div>
+                <div class="node-content">
+                    <h3>Init Transaction & Lock Cart</h3>
+                    <p>Khởi tạo DB Transaction và khóa (Pessimistic Locking) giỏ hàng của người dùng để tránh Race Condition.</p>
+                </div>
+            </div>
+
+            <div class="node" data-step="2" onclick="selectNode(2)">
+                <div class="node-icon">2</div>
+                <div class="node-content">
+                    <h3>Calculate Pricing</h3>
+                    <p>Tính toán tổng phụ, thuế VAT, phí vận chuyển và kiểm tra các mã khuyến mãi (Promotion) hợp lệ.</p>
+                </div>
+            </div>
+
+            <div class="node" data-step="3" onclick="selectNode(3)">
+                <div class="node-icon">3</div>
+                <div class="node-content">
+                    <h3>Create Order Record</h3>
+                    <p>Khởi tạo bản ghi Order với trạng thái PENDING và mã đơn hàng sinh ngẫu nhiên.</p>
+                </div>
+            </div>
+
+            <div class="node" data-step="4" onclick="selectNode(4)">
+                <div class="node-icon">4</div>
+                <div class="node-content">
+                    <h3>Lock Products & Decrement</h3>
+                    <p>Duyệt qua các sản phẩm, khóa dòng dữ liệu từng sản phẩm, kiểm tra tồn kho và trừ số lượng.</p>
+                </div>
+            </div>
+
+            <div class="node" data-step="5" onclick="selectNode(5)">
+                <div class="node-icon">5</div>
+                <div class="node-content">
+                    <h3>Save Order Items & Cleanup</h3>
+                    <p>Lưu Order Items (ảnh chụp giá tại thời điểm mua), xóa giỏ hàng và hoàn tất Transaction.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Code Viewer -->
+        <div class="code-panel">
+            <div class="code-container">
+                <div class="code-header">
+                    <div class="window-controls">
+                        <div class="dot red"></div>
+                        <div class="dot yellow"></div>
+                        <div class="dot green"></div>
+                    </div>
+                    <span id="file-name">app/Services/OrderService.php</span>
+                </div>
+                <pre class="code-content" id="code-viewer">
+                    <!-- Code will be injected here -->
+                </pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const snippets = {
+            1: `<span class="cm">// Bắt đầu DB Transaction để đảm bảo tính nhất quán</span>
+<span class="kw">return</span> <span class="cl">DB</span><span class="op">::</span><span class="fn">transaction</span>(<span class="kw">function</span> () <span class="kw">use</span> (<span class="vr">$userId</span>, <span class="vr">$data</span>) {
+    <span class="cm">// Lấy thông tin User</span>
+    <span class="vr">$user</span> <span class="op">=</span> <span class="cl">User</span><span class="op">::</span><span class="fn">find</span>(<span class="vr">$userId</span>);
+
+    <span class="cm">// Lock giỏ hàng (Pessimistic Locking) để không ai sửa đổi trong lúc thanh toán</span>
+    <span class="vr">$cart</span> <span class="op">=</span> <span class="cl">Cart</span><span class="op">::</span><span class="fn">with</span>(<span class="st">'cartItems.product'</span>)
+        <span class="op">-></span><span class="fn">where</span>(<span class="st">'user_id'</span>, <span class="vr">$userId</span>)
+        <span class="op">-></span><span class="fn">lockForUpdate</span>()
+        <span class="op">-></span><span class="fn">first</span>();
+
+    <span class="kw">if</span> (<span class="op">!</span><span class="vr">$cart</span> <span class="op">||</span> <span class="vr">$cart</span><span class="op">-></span><span class="vr">cartItems</span><span class="op">-></span><span class="fn">isEmpty</span>()) {
+        <span class="kw">throw new</span> <span class="cl">BadRequestException</span>(<span class="st">'Giỏ hàng đang trống'</span>);
+    }`,
+            2: `<span class="cm">// Tính toán tổng tiền, VAT, phí ship</span>
+<span class="vr">$subtotal</span> <span class="op">=</span> <span class="vr">$cart</span><span class="op">-></span><span class="vr">cartItems</span><span class="op">-></span><span class="fn">sum</span>(<span class="kw">fn</span> (<span class="vr">$item</span>) <span class="op">=></span> (<span class="kw">float</span>) <span class="vr">$item</span><span class="op">-></span><span class="vr">product</span><span class="op">-></span><span class="vr">price</span> <span class="op">*</span> <span class="vr">$item</span><span class="op">-></span><span class="vr">quantity</span>);
+<span class="vr">$tax</span> <span class="op">=</span> <span class="fn">round</span>(<span class="vr">$subtotal</span> <span class="op">*</span> (<span class="kw">float</span>) <span class="fn">config</span>(<span class="st">'shop.vat_rate'</span>));
+<span class="vr">$shipping</span> <span class="op">=</span> <span class="vr">$subtotal</span> <span class="op">>=</span> (<span class="kw">float</span>) <span class="fn">config</span>(<span class="st">'shop.shipping_threshold'</span>) <span class="op">?</span> <span class="vr">0</span> <span class="op">:</span> (<span class="kw">float</span>) <span class="fn">config</span>(<span class="st">'shop.shipping_fee'</span>);
+<span class="vr">$gross</span> <span class="op">=</span> <span class="vr">$subtotal</span> <span class="op">+</span> <span class="vr">$tax</span> <span class="op">+</span> <span class="vr">$shipping</span>;
+
+<span class="vr">$discount</span> <span class="op">=</span> <span class="vr">0</span>;
+<span class="vr">$promotionId</span> <span class="op">=</span> <span class="kw">null</span>;
+
+<span class="cm">// Xử lý áp dụng mã khuyến mãi hợp lệ</span>
+<span class="kw">if</span> (<span class="op">!</span><span class="fn">empty</span>(<span class="vr">$data</span>[<span class="st">'promotion_id'</span>])) {
+    <span class="vr">$promotion</span> <span class="op">=</span> <span class="cl">Promotion</span><span class="op">::</span><span class="fn">find</span>(<span class="vr">$data</span>[<span class="st">'promotion_id'</span>]);
+
+    <span class="kw">if</span> (<span class="vr">$promotion</span> <span class="op">&&</span> <span class="vr">$this</span><span class="op">-></span><span class="fn">isPromotionCurrentlyActive</span>(<span class="vr">$promotion</span>) <span class="op">&&</span> <span class="vr">$subtotal</span> <span class="op">>=</span> (<span class="kw">float</span>) <span class="vr">$promotion</span><span class="op">-></span><span class="vr">minimum_order_amount</span>) {
+        <span class="vr">$discount</span> <span class="op">=</span> <span class="vr">$this</span><span class="op">-></span><span class="fn">calculateDiscount</span>(<span class="vr">$promotion</span>, <span class="vr">$subtotal</span>);
+        <span class="vr">$promotionId</span> <span class="op">=</span> <span class="vr">$promotion</span><span class="op">-></span><span class="vr">id</span>;
+    }
+}`,
+            3: `    <span class="cm">// Tạo mới đơn hàng với tổng tiền đã tính toán</span>
+    <span class="vr">$order</span> <span class="op">=</span> <span class="cl">Order</span><span class="op">::</span><span class="fn">create</span>([
+        <span class="st">'order_code'</span> <span class="op">=></span> <span class="st">'ORD-'</span><span class="op">.</span><span class="cl">Carbon</span><span class="op">::</span><span class="fn">now</span>(<span class="st">'UTC'</span>)<span class="op">-></span><span class="fn">format</span>(<span class="st">'YmdHis'</span>)<span class="op">.</span><span class="st">'-'</span><span class="op">.</span><span class="fn">strtoupper</span>(<span class="cl">Str</span><span class="op">::</span><span class="fn">random</span>(<span class="vr">6</span>)),
+        <span class="st">'user_id'</span> <span class="op">=></span> <span class="vr">$userId</span>,
+        <span class="st">'customer_name'</span> <span class="op">=></span> <span class="vr">$data</span>[<span class="st">'customer_name'</span>] <span class="op">??</span> <span class="vr">$user</span><span class="op">-></span><span class="vr">full_name</span>,
+        <span class="st">'customer_email'</span> <span class="op">=></span> <span class="vr">$data</span>[<span class="st">'customer_email'</span>] <span class="op">??</span> <span class="vr">$user</span><span class="op">-></span><span class="vr">email</span>,
+        <span class="st">'total_amount'</span> <span class="op">=></span> <span class="vr">$subtotal</span>,
+        <span class="st">'discount_amount'</span> <span class="op">=></span> <span class="vr">$discount</span>,
+        <span class="st">'final_amount'</span> <span class="op">=></span> <span class="fn">max</span>(<span class="vr">$gross</span> <span class="op">-</span> <span class="vr">$discount</span>, <span class="vr">0</span>),
+        <span class="st">'promotion_id'</span> <span class="op">=></span> <span class="vr">$promotionId</span>,
+        <span class="st">'status'</span> <span class="op">=></span> <span class="st">'PENDING'</span>,
+        <span class="st">'payment_method'</span> <span class="op">=></span> <span class="vr">$data</span>[<span class="st">'payment_method'</span>] <span class="op">??</span> <span class="st">'COD'</span>,
+        <span class="st">'shipping_address'</span> <span class="op">=></span> <span class="vr">$data</span>[<span class="st">'shipping_address'</span>],
+        <span class="st">'shipping_phone'</span> <span class="op">=></span> <span class="vr">$data</span>[<span class="st">'shipping_phone'</span>] <span class="op">??</span> <span class="kw">null</span>,
+        <span class="st">'notes'</span> <span class="op">=></span> <span class="vr">$data</span>[<span class="st">'notes'</span>] <span class="op">??</span> <span class="kw">null</span>,
+    ]);`,
+            4: `    <span class="cm">// Lặp qua giỏ hàng để cập nhật tồn kho</span>
+    <span class="kw">foreach</span> (<span class="vr">$cart</span><span class="op">-></span><span class="vr">cartItems</span> <span class="kw">as</span> <span class="vr">$item</span>) {
+        <span class="cm">// Khóa dòng sản phẩm để ngăn Race Condition khi nhiều người cùng mua</span>
+        <span class="vr">$product</span> <span class="op">=</span> <span class="cl">Product</span><span class="op">::</span><span class="fn">where</span>(<span class="st">'id'</span>, <span class="vr">$item</span><span class="op">-></span><span class="vr">product_id</span>)
+            <span class="op">-></span><span class="fn">lockForUpdate</span>()
+            <span class="op">-></span><span class="fn">first</span>();
+
+        <span class="kw">if</span> (<span class="op">!</span><span class="vr">$product</span><span class="op">-></span><span class="vr">is_active</span>) {
+            <span class="kw">throw new</span> <span class="cl">BadRequestException</span>(<span class="st">"Sản phẩm không khả dụng: "</span><span class="op">.</span><span class="vr">$product</span><span class="op">-></span><span class="vr">name</span>);
+        }
+
+        <span class="kw">if</span> (<span class="vr">$product</span><span class="op">-></span><span class="vr">quantity</span> <span class="op"><</span> <span class="vr">$item</span><span class="op">-></span><span class="vr">quantity</span>) {
+            <span class="kw">throw new</span> <span class="cl">BadRequestException</span>(<span class="st">"Không đủ hàng: "</span><span class="op">.</span><span class="vr">$product</span><span class="op">-></span><span class="vr">name</span>);
+        }
+
+        <span class="cm">// Trừ số lượng tồn kho an toàn tuyệt đối</span>
+        <span class="vr">$product</span><span class="op">-></span><span class="fn">decrement</span>(<span class="st">'quantity'</span>, <span class="vr">$item</span><span class="op">-></span><span class="vr">quantity</span>);`,
+            5: `        <span class="cm">// Lưu lại ảnh chụp thông tin sản phẩm tại thời điểm mua (Tránh thay đổi giá về sau)</span>
+        <span class="cl">OrderItem</span><span class="op">::</span><span class="fn">create</span>([
+            <span class="st">'order_id'</span> <span class="op">=></span> <span class="vr">$order</span><span class="op">-></span><span class="vr">id</span>,
+            <span class="st">'product_id'</span> <span class="op">=></span> <span class="vr">$product</span><span class="op">-></span><span class="vr">id</span>,
+            <span class="st">'product_name'</span> <span class="op">=></span> <span class="vr">$product</span><span class="op">-></span><span class="vr">name</span>,
+            <span class="st">'quantity'</span> <span class="op">=></span> <span class="vr">$item</span><span class="op">-></span><span class="vr">quantity</span>,
+            <span class="st">'price'</span> <span class="op">=></span> <span class="vr">$product</span><span class="op">-></span><span class="vr">price</span>,
+            <span class="st">'created_at'</span> <span class="op">=></span> <span class="cl">Carbon</span><span class="op">::</span><span class="fn">now</span>(),
+        ]);
+    }
+
+    <span class="cm">// Xóa toàn bộ sản phẩm khỏi giỏ hàng sau khi đặt thành công</span>
+    <span class="vr">$cart</span><span class="op">-></span><span class="fn">cartItems</span>()<span class="op">-></span><span class="fn">delete</span>();
+    <span class="vr">$cart</span><span class="op">-></span><span class="fn">touch</span>();
+
+    <span class="cm">// Tự động Commit DB Transaction khi chạy đến cuối block</span>
+    <span class="kw">return</span> <span class="vr">$order</span><span class="op">-></span><span class="fn">refresh</span>()<span class="op">-></span><span class="fn">load</span>([<span class="st">'user'</span>, <span class="st">'promotion'</span>, <span class="st">'orderItems.product.images'</span>]);
+});`
+        };
+
+        const nodes = document.querySelectorAll('.node');
+        const codeViewer = document.getElementById('code-viewer');
+        const progressBar = document.getElementById('flow-progress');
+        const particle = document.getElementById('particle');
+        let currentStep = 1;
+        let autoPlayInterval;
+
+        function updateCodeViewer(step) {
+            codeViewer.classList.remove('code-transition');
+            void codeViewer.offsetWidth; // trigger reflow
+            codeViewer.innerHTML = snippets[step];
+            codeViewer.classList.add('code-transition');
+        }
+
+        function updateFlowVisuals(step) {
+            nodes.forEach((node, index) => {
+                const nodeStep = index + 1;
+                if (nodeStep < step) {
+                    node.classList.remove('active');
+                    node.classList.add('completed');
+                } else if (nodeStep === step) {
+                    node.classList.add('active');
+                    node.classList.remove('completed');
+                    
+                    // Move particle to active node
+                    const nodeRect = node.querySelector('.node-icon').getBoundingClientRect();
+                    const containerRect = document.getElementById('flow-container').getBoundingClientRect();
+                    const topPos = nodeRect.top - containerRect.top + 30;
+                    
+                    particle.style.opacity = 1;
+                    particle.style.top = topPos + 'px';
+                    
+                    // Update progress bar
+                    const progressPercentage = ((step - 1) / (nodes.length - 1)) * 100;
+                    progressBar.style.height = progressPercentage + '%';
+                } else {
+                    node.classList.remove('active', 'completed');
+                }
+            });
+        }
+
+        function selectNode(step) {
+            currentStep = step;
+            updateFlowVisuals(step);
+            updateCodeViewer(step);
+            stopAutoPlay();
+        }
+
+        function startAutoPlay() {
+            autoPlayInterval = setInterval(() => {
+                currentStep = currentStep >= 5 ? 1 : currentStep + 1;
+                updateFlowVisuals(currentStep);
+                updateCodeViewer(currentStep);
+            }, 4000);
+        }
+
+        function stopAutoPlay() {
+            clearInterval(autoPlayInterval);
+        }
+
+        // Initialize
+        updateCodeViewer(1);
+        updateFlowVisuals(1);
+        
+        // Start auto-play after a short delay
+        setTimeout(startAutoPlay, 2000);
+    </script>
+</body>
+</html>

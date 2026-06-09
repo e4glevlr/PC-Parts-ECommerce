@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC Parts E-Commerce - Backend PHP Architecture Visualizer</title>
+    <meta name="description" content="Visualizing and explaining the Laravel 11/Eloquent backend architecture for the PC Parts E-Commerce project.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* CSS DESIGN SYSTEM - PC PARTS ARCHITECTURE VISUALIZER */
+        :root {
+            --bg-dark: #090b11;
+            --bg-card: rgba(17, 22, 37, 0.7);
+            --bg-card-hover: rgba(26, 32, 53, 0.85);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(139, 92, 246, 0.4);
+            
+            /* Curated Color Palette */
+            --color-primary: #8b5cf6; /* Neon Violet */
+            --color-secondary: #06b6d4; /* Neon Cyan */
+            --color-success: #10b981; /* Emerald Green */
+            --color-warning: #f59e0b; /* Amber Gold */
+            --color-danger: #ef4444; /* Coral Red */
+            --text-main: #f3f4f6; /* Off-White */
+            --text-muted: #9ca3af; /* Cool Gray */
+            
+            --font-sans: 'Outfit', sans-serif;
+            --font-mono: 'Fira Code', monospace;
+            
+            --glow-violet: 0 0 20px rgba(139, 92, 246, 0.35);
+            --glow-cyan: 0 0 20px rgba(6, 118, 212, 0.35);
+            --glow-emerald: 0 0 20px rgba(16, 185, 129, 0.25);
+            
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Basic Resets & Scrollbars */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 92, 246, 0.5);
+        }
+
+        body {
+            position: relative;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 40%),
+                linear-gradient(rgba(255, 255, 255, 0.003) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.003) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* Typography & Layout Utilities */
+        h1, h2, h3, h4 {
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+        }
+
+        p {
+            line-height: 1.6;
+            color: var(--text-muted);
+        }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--color-secondary);
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Glassmorphism Classes */
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            transition: var(--transition-smooth);
+        }
+
+        .glass-card:hover {
+            border-color: var(--border-hover);
+            background: var(--bg-card-hover);
+            box-shadow: var(--glow-violet);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.3rem 0.8rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            gap: 0.4rem;
+        }
+
+        .badge-violet { background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); }
+        .badge-cyan { background: rgba(6, 182, 212, 0.15); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.3); }
+        .badge-emerald { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+        /* HEADER SECTION */
+        header {
+            padding: 4rem 0 3rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .logo-icon {
+            font-size: 3rem;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.5));
+            animation: pulse 3s infinite ease-in-out;
+        }
+
+        h1.title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(to right, #ffffff, #a78bfa, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            max-width: 700px;
+            margin: 0 auto;
+            color: var(--text-muted);
+            font-weight: 300;
+        }
+
+        /* NAVIGATION BAR */
+        .navbar-sticky {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(9, 11, 17, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+            gap: 1.5rem;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: var(--transition-smooth);
+            border: 1px solid transparent;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-links a.active {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
+        }
+
+        /* SECTION STYLING */
+        section {
+            padding: 5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 3.5rem;
+        }
+
+        .section-header h2 {
+            font-size: 2.25rem;
+            margin-bottom: 0.75rem;
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-header h2 i {
+            color: var(--color-primary);
+        }
+
+        /* INTERACTIVE LIFE-CYCLE VISUALIZER */
+        .flow-container {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 3rem;
+            align-items: start;
+        }
+
+        .flow-visualizer {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            position: relative;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            background: rgba(17, 22, 37, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            position: relative;
+            z-index: 2;
+        }
+
+        .flow-step:hover, .flow-step.active {
+            transform: translateX(10px);
+            background: rgba(26, 32, 53, 0.8);
+            border-color: var(--color-primary);
+        }
+
+        .flow-step.active {
+            box-shadow: var(--glow-violet);
+        }
+
+        .flow-step .step-num {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: var(--color-secondary);
+            margin-right: 1.25rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: var(--transition-smooth);
+        }
+
+        .flow-step.active .step-num {
+            background: var(--color-primary);
+            color: #ffffff;
+            border-color: var(--color-primary);
+        }
+
+        .flow-step .step-info {
+            flex-grow: 1;
+        }
+
+        .flow-step .step-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.15rem;
+        }
+
+        .flow-step .step-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .flow-step .step-icon {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            transition: var(--transition-smooth);
+        }
+
+        .flow-step.active .step-icon {
+            color: var(--color-primary);
+            transform: rotate(90deg);
+        }
+
+        /* Flow Connector Lines */
+        .flow-visualizer::after {
+            content: '';
+            position: absolute;
+            top: 2.5rem;
+            bottom: 2.5rem;
+            left: 2.5rem;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--color-secondary), var(--color-primary), var(--color-success));
+            z-index: 1;
+            opacity: 0.3;
+        }
+
+        /* Detail Panel Card */
+        .flow-details-panel {
+            min-height: 480px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .details-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .details-title-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .details-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(139, 92, 246, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-primary);
+            font-size: 1.5rem;
+            box-shadow: inset 0 0 10px rgba(139, 92, 246, 0.2);
+        }
+
+        .details-title {
+            font-size: 1.5rem;
+            color: #ffffff;
+        }
+
+        .details-body {
+            flex-grow: 1;
+            margin-bottom: 2rem;
+        }
+
+        .details-body p {
+            font-size: 1.05rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.7;
+        }
+
+        .details-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .details-file-box {
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .details-file-box strong {
+            display: block;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            font-family: var(--font-sans);
+        }
+
+        .details-file-box span {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--color-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* DATABASE SCHEMA EXPLORER */
+        .db-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .db-card {
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .db-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--color-primary);
+        }
+
+        .db-card.auth::before { background: var(--color-primary); }
+        .db-card.catalog::before { background: var(--color-secondary); }
+        .db-card.sales::before { background: var(--color-success); }
+        .db-card.other::before { background: var(--color-warning); }
+
+        .db-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+        }
+
+        .db-card-title {
+            font-size: 1.25rem;
+            color: #ffffff;
+            font-family: var(--font-mono);
+        }
+
+        .db-card-body {
+            flex-grow: 1;
+        }
+
+        .db-card-desc {
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .db-fields-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 1rem;
+        }
+
+        .db-field-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-family: var(--font-mono);
+        }
+
+        .db-field-name {
+            color: #e5e7eb;
+        }
+
+        .db-field-type {
+            color: var(--text-muted);
+        }
+
+        .db-field-item.pk .db-field-name {
+            color: #fcd34d;
+            font-weight: 600;
+        }
+        .db-field-item.pk::before {
+            content: '\f084';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            margin-right: 0.4rem;
+            color: #fcd34d;
+        }
+
+        .db-field-item.fk .db-field-name {
+            color: #a78bfa;
+        }
+        .db-field-item.fk::before {
+            content: '\f0c1';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            margin-right: 0.4rem;
+            color: #a78bfa;
+        }
+
+        /* HIGHLIGHT FUNCTIONALITIES */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2.5rem;
+        }
+
+        .feature-box {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .feature-card {
+            padding: 2.2rem;
+            display: flex;
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        .feature-icon-wrapper {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: rgba(6, 182, 212, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-secondary);
+            font-size: 1.75rem;
+            flex-shrink: 0;
+            box-shadow: inset 0 0 10px rgba(6, 182, 212, 0.2);
+        }
+
+        .feature-card.jwt-style .feature-icon-wrapper {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--color-primary);
+            box-shadow: inset 0 0 10px rgba(139, 92, 246, 0.2);
+        }
+
+        .feature-content h3 {
+            font-size: 1.4rem;
+            color: #ffffff;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-content p {
+            margin-bottom: 1.25rem;
+            font-size: 0.95rem;
+        }
+
+        /* DYNAMIC SPECS DEMO CONTAINER */
+        .specs-interactive-demo {
+            margin-top: 1.5rem;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1.25rem;
+        }
+
+        .specs-select-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .specs-select-wrapper label {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .specs-select {
+            background: rgba(17, 22, 37, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            padding: 0.4rem 1rem;
+            border-radius: 6px;
+            font-family: var(--font-sans);
+            font-size: 0.9rem;
+            cursor: pointer;
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .specs-select:focus {
+            border-color: var(--color-secondary);
+        }
+
+        .specs-result-box {
+            min-height: 120px;
+            background: rgba(9, 11, 17, 0.6);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow-x: auto;
+        }
+
+        /* IDE CODE EXPLORER */
+        .ide-container {
+            border-radius: 16px;
+            background: #0d1117;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .ide-header {
+            background: #161b22;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .ide-dots {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .ide-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .ide-dot.red { background: #ff5f56; }
+        .ide-dot.yellow { background: #ffbd2e; }
+        .ide-dot.green { background: #27c93f; }
+
+        .ide-title {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .ide-actions {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .ide-tabs {
+            background: #0f141c;
+            display: flex;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            overflow-x: auto;
+        }
+
+        .ide-tab {
+            padding: 0.8rem 1.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: var(--transition-smooth);
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .ide-tab:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .ide-tab.active {
+            color: var(--color-secondary);
+            background: #0d1117;
+            border-bottom: 2px solid var(--color-secondary);
+        }
+
+        .ide-tab i {
+            font-size: 1rem;
+        }
+        .ide-tab.active i {
+            color: var(--color-secondary);
+        }
+
+        .ide-code-wrapper {
+            padding: 1.5rem;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .ide-code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #e6edf3;
+            white-space: pre;
+            display: none;
+        }
+
+        .ide-code.active {
+            display: block;
+        }
+
+        /* Code Color Syntax */
+        .token.comment { color: #8b949e; font-style: italic; }
+        .token.keyword { color: #ff7b72; font-weight: 600; }
+        .token.string { color: #a5d6ff; }
+        .token.function { color: #d2a8ff; }
+        .token.class { color: #ffa657; font-weight: 500; }
+        .token.operator { color: #ff7b72; }
+        .token.variable { color: #79c0ff; }
+        .token.boolean { color: #ff7b72; }
+
+        /* SCROLL ENTRANCE EFFECTS (PROGRESSIVE ENHANCEMENT) */
+        @media (prefers-reduced-motion: no-preference) {
+            @supports ((animation-timeline: view()) and (animation-range: entry)) {
+                @keyframes fade-up-enter {
+                    from {
+                        opacity: 0;
+                        transform: translateY(50px);
+                    }
+                }
+                
+                .scroll-reveal {
+                    animation: fade-up-enter auto linear backwards;
+                    animation-timeline: view();
+                    animation-range: entry 10% entry 35%;
+                }
+            }
+        }
+
+        /* FALLBACK INTERSECTION OBSERVER STYLE */
+        .scroll-reveal-fallback {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .scroll-reveal-fallback.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ANIMATIONS */
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.5));
+            }
+            50% {
+                transform: scale(1.05);
+                filter: drop-shadow(0 0 22px rgba(139, 92, 246, 0.8));
+            }
+        }
+
+        /* FOOTER */
+        footer {
+            background: #06080d;
+            padding: 3rem 0;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+        }
+
+        footer p {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        footer .credits {
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+
+        /* RESPONSIVE DESIGN */
+        @media (max-width: 1024px) {
+            .flow-container {
+                grid-template-columns: 1fr;
+                gap: 2.5rem;
+            }
+
+            .flow-details-panel {
+                min-height: auto;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1.title {
+                font-size: 2.5rem;
+            }
+
+            .navbar-sticky {
+                display: none; /* Hide sticky bar on mobile to save screen estate */
+            }
+
+            section {
+                padding: 3.5rem 0;
+            }
+
+            .container {
+                padding: 0 1.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header>
+        <div class="container">
+            <div class="logo-container">
+                <i class="fa-solid fa-microchip logo-icon"></i>
+                <i class="fa-solid fa-server logo-icon" style="background: linear-gradient(135deg, var(--color-secondary), var(--color-success)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+            </div>
+            <h1 class="title">PC Parts E-Commerce</h1>
+            <p class="subtitle">Trực quan hóa cấu trúc & sơ đồ tổ chức của hệ thống Backend PHP (Laravel API) hiệu năng cao.</p>
+        </div>
+    </header>
+
+    <!-- STICKY NAVBAR -->
+    <nav class="navbar-sticky">
+        <div class="container">
+            <ul class="nav-links">
+                <li><a href="#lifecycle" class="active"><i class="fa-solid fa-circle-nodes"></i> Vòng đời Request</a></li>
+                <li><a href="#database"><i class="fa-solid fa-database"></i> Cơ sở dữ liệu</a></li>
+                <li><a href="#features"><i class="fa-solid fa-wand-magic-sparkles"></i> Tính năng nổi bật</a></li>
+                <li><a href="#code-explorer"><i class="fa-solid fa-code"></i> Trình duyệt Code</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 1. REQUEST LIFECYCLE SECTION -->
+    <section id="lifecycle">
+        <div class="container">
+            <div class="section-header">
+                <h2><i class="fa-solid fa-circle-nodes"></i> Vòng Đời Xử Lý Request</h2>
+                <p>Nhấp vào từng bước để xem cách một Request đi từ Client qua các lớp bảo vệ và xử lý của hệ thống.</p>
+            </div>
+
+            <div class="flow-container scroll-reveal scroll-reveal-fallback">
+                <!-- Visualizer Steps -->
+                <div class="flow-visualizer">
+                    <div class="flow-step active" data-step="1">
+                        <div class="step-num">01</div>
+                        <div class="step-info">
+                            <h4 class="step-title">Client Request</h4>
+                            <p class="step-desc">Frontend gửi HTTP request JSON payload lên API.</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right step-icon"></i>
+                    </div>
+
+                    <div class="flow-step" data-step="2">
+                        <div class="step-num">02</div>
+                        <div class="step-info">
+                            <h4 class="step-title">API Routes</h4>
+                            <p class="step-desc">Định vị API Endpoint tương ứng trong routes/api.php.</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right step-icon"></i>
+                    </div>
+
+                    <div class="flow-step" data-step="3">
+                        <div class="step-num">03</div>
+                        <div class="step-info">
+                            <h4 class="step-title">Security Middleware</h4>
+                            <p class="step-desc">Xác thực Token JWT và phân quyền người dùng (RBAC).</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right step-icon"></i>
+                    </div>
+
+                    <div class="flow-step" data-step="4">
+                        <div class="step-num">04</div>
+                        <div class="step-info">
+                            <h4 class="step-title">Form Requests Validation</h4>
+                            <p class="step-desc">Kiểm tra tính hợp lệ dữ liệu đầu vào trước khi xử lý.</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right step-icon"></i>
+                    </div>
+
+                    <div class="flow-step" data-step="5">
+                        <div class="step-num">05</div>
+                        <div class="step-info">
+                            <h4 class="step-title">Lean V1 Controllers</h4>
+                            <p class="step-desc">Tiếp nhận request, điều phối sang lớp nghiệp vụ.</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right step-icon"></i>
+                    </div>
+
+                    <div class="flow-step" data-step="6">
+                        <div class="step-num">06</div>
+                        <div class="step-info">
+                            <h4 class="step-title">Domain Services</h4>
+                            <p class="step-desc">Thực thi Business Logic chính (tính toán, xử lý).</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right step-icon"></i>
+                    </div>
+
+                    <div class="flow-step" data-step="7">
+                        <div class="step-num">07</div>
+                        <div class="step-info">
+                            <h4 class="step-title">Eloquent Models & DB</h4>
+                            <p class="step-desc">Truy vấn và thao tác dữ liệu an toàn qua ORM.</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right step-icon"></i>
+                    </div>
+
+                    <div class="flow-step" data-step="8">
+                        <div class="step-num">08</div>
+                        <div class="step-info">
+                            <h4 class="step-title">API Resources & Response</h4>
+                            <p class="step-desc">Format JSON đầu ra chuẩn hóa trả lại cho Client.</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right step-icon"></i>
+                    </div>
+                </div>
+
+                <!-- Step details panel -->
+                <div class="glass-card flow-details-panel">
+                    <div class="details-header">
+                        <div class="details-title-container">
+                            <div class="details-icon" id="det-icon">
+                                <i class="fa-solid fa-laptop-code"></i>
+                            </div>
+                            <h3 class="details-title" id="det-title">Client Request</h3>
+                        </div>
+                        <span class="badge badge-cyan" id="det-badge">HTTP Layer</span>
+                    </div>
+
+                    <div class="details-body">
+                        <p id="det-desc">Trình duyệt hoặc Mobile App của khách hàng gửi một HTTP Request lên backend (ví dụ: yêu cầu thêm Card màn hình RTX 4090 vào giỏ hàng). Payload được định dạng bằng JSON đính kèm tiêu đề Authorization chứa Token JWT xác thực.</p>
+                        
+                        <div class="details-features" id="det-features">
+                            <span class="badge badge-violet">JSON Payload</span>
+                            <span class="badge badge-violet">HTTPS</span>
+                            <span class="badge badge-violet">REST API</span>
+                        </div>
+
+                        <div class="details-file-box" id="det-file-box">
+                            <strong>Vị trí file tương ứng trong codebase:</strong>
+                            <span id="det-file"><i class="fa-solid fa-file-code"></i> frontend/src/services/api.js</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. DATABASE SCHEMA EXPLORER -->
+    <section id="database">
+        <div class="container">
+            <div class="section-header">
+                <h2><i class="fa-solid fa-database"></i> Thiết Kế Cơ Sở Dữ Liệu</h2>
+                <p>Cấu trúc các bảng dữ liệu chuẩn hóa của dự án E-Commerce được định nghĩa trong Migration.</p>
+            </div>
+
+            <div class="db-grid scroll-reveal scroll-reveal-fallback">
+                <!-- Group 1: Users & Security -->
+                <div class="glass-card db-card auth">
+                    <div class="db-card-header">
+                        <span class="badge badge-violet">Hội Viên & Bảo mật</span>
+                        <i class="fa-solid fa-shield-halved" style="color: var(--color-primary)"></i>
+                    </div>
+                    <h3 class="db-card-title">users</h3>
+                    <p class="db-card-desc">Lưu trữ tài khoản, thông tin liên lạc và vai trò bảo mật của người dùng.</p>
+                    <ul class="db-fields-list">
+                        <li class="db-field-item pk"><span class="db-field-name">id</span> <span class="db-field-type">BIGINT</span></li>
+                        <li class="db-field-item"><span class="db-field-name">username</span> <span class="db-field-type">VARCHAR</span></li>
+                        <li class="db-field-item"><span class="db-field-name">email</span> <span class="db-field-type">VARCHAR</span></li>
+                        <li class="db-field-item"><span class="db-field-name">password</span> <span class="db-field-type">VARCHAR</span></li>
+                        <li class="db-field-item fk"><span class="db-field-name">role_id</span> <span class="db-field-type">BIGINT</span></li>
+                        <li class="db-field-item"><span class="db-field-name">is_active</span> <span class="db-field-type">BOOLEAN</span></li>
+                    </ul>
+                </div>
+
+                <!-- Group 2: Catalog Products -->
+                <div class="glass-card db-card catalog">
+                    <div class="db-card-header">
+                        <span class="badge badge-cyan">Danh Mục sản phẩm</span>
+                        <i class="fa-solid fa-boxes-stacked" style="color: var(--color-secondary)"></i>
+                    </div>
+                    <h3 class="db-card-title">products</h3>
+                    <p class="db-card-desc">Chứa linh kiện PC kèm đặc tả kỹ thuật dạng động thông qua JSON.</p>
+                    <ul class="db-fields-list">
+                        <li class="db-field-item pk"><span class="db-field-name">id</span> <span class="db-field-type">BIGINT</span></li>
+                        <li class="db-field-item"><span class="db-field-name">name</span> <span class="db-field-type">VARCHAR</span></li>
+                        <li class="db-field-item"><span class="db-field-name">price</span> <span class="db-field-type">DECIMAL</span></li>
+                        <li class="db-field-item"><span class="db-field-name">quantity</span> <span class="db-field-type">INT</span></li>
+                        <li class="db-field-item fk"><span class="db-field-name">category_id</span> <span class="db-field-type">BIGINT</span></li>
+                        <li class="db-field-item"><span class="db-field-name">specifications</span> <span class="db-field-type">JSON (Dynamic)</span></li>
+                    </ul>
+                </div>
+
+                <!-- Group 3: Sales Orders -->
+                <div class="glass-card db-card sales">
+                    <div class="db-card-header">
+                        <span class="badge badge-emerald">Bán Hàng & Đơn Hàng</span>
+                        <i class="fa-solid fa-basket-shopping" style="color: var(--color-success)"></i>
+                    </div>
+                    <h3 class="db-card-title">orders</h3>
+                    <p class="db-card-desc">Lưu vết các giao dịch đặt hàng, trạng thái thanh toán và địa chỉ giao hàng.</p>
+                    <ul class="db-fields-list">
+                        <li class="db-field-item pk"><span class="db-field-name">id</span> <span class="db-field-type">BIGINT</span></li>
+                        <li class="db-field-item"><span class="db-field-name">order_code</span> <span class="db-field-type">VARCHAR (Unique)</span></li>
+                        <li class="db-field-item fk"><span class="db-field-name">user_id</span> <span class="db-field-type">BIGINT</span></li>
+                        <li class="db-field-item"><span class="db-field-name">final_amount</span> <span class="db-field-type">DECIMAL</span></li>
+                        <li class="db-field-item"><span class="db-field-name">status</span> <span class="db-field-type">VARCHAR (PENDING...)</span></li>
+                        <li class="db-field-item fk"><span class="db-field-name">promotion_id</span> <span class="db-field-type">BIGINT</span></li>
+                    </ul>
+                </div>
+
+                <!-- Group 4: Other Interactions -->
+                <div class="glass-card db-card other">
+                    <div class="db-card-header">
+                        <span class="badge badge-amber">Kho & Tương Tác</span>
+                        <i class="fa-solid fa-clipboard-list" style="color: var(--color-warning)"></i>
+                    </div>
+                    <h3 class="db-card-title">inventory_logs</h3>
+                    <p class="db-card-desc">Ghi chép lịch sử chi tiết mọi thay đổi của kho hàng và nhân sự thực thi.</p>
+                    <ul class="db-fields-list">
+                        <li class="db-field-item pk"><span class="db-field-name">id</span> <span class="db-field-type">BIGINT</span></li>
+                        <li class="db-field-item fk"><span class="db-field-name">product_id</span> <span class="db-field-type">BIGINT</span></li>
+                        <li class="db-field-item"><span class="db-field-name">change_type</span> <span class="db-field-type">VARCHAR (IN / OUT)</span></li>
+                        <li class="db-field-item"><span class="db-field-name">quantity_change</span> <span class="db-field-type">INT</span></li>
+                        <li class="db-field-item fk"><span class="db-field-name">performed_by</span> <span class="db-field-type">BIGINT (User)</span></li>
+                        <li class="db-field-item"><span class="db-field-name">created_at</span> <span class="db-field-type">TIMESTAMP</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. HIGHLIGHT FEATURES -->
+    <section id="features">
+        <div class="container">
+            <div class="section-header">
+                <h2><i class="fa-solid fa-wand-magic-sparkles"></i> Tính Năng Nổi Bật Của Hệ Thống</h2>
+                <p>Những điểm nhấn công nghệ và kiến trúc giúp giải quyết tốt bài toán thương mại linh kiện máy tính.</p>
+            </div>
+
+            <div class="feature-grid scroll-reveal scroll-reveal-fallback">
+                <!-- Highlight 1: Custom Attribute Definition -->
+                <div class="glass-card feature-card">
+                    <div class="feature-icon-wrapper">
+                        <i class="fa-solid fa-sliders"></i>
+                    </div>
+                    <div class="feature-content">
+                        <h3>Thuộc Tính Động (Dynamic Specs)</h3>
+                        <p>Các loại linh kiện PC có cấu trúc thông số hoàn toàn khác nhau. Hệ thống giải quyết bằng bảng <code>attribute_definitions</code> định nghĩa cấu trúc động và lưu dạng JSON trong sản phẩm.</p>
+                        
+                        <!-- Interactive Demo -->
+                        <div class="specs-interactive-demo">
+                            <div class="specs-select-wrapper">
+                                <label for="category-demo-select">Chọn loại linh kiện thử nghiệm:</label>
+                                <select id="category-demo-select" class="specs-select">
+                                    <option value="cpu">Vi Xử Lý (CPU)</option>
+                                    <option value="gpu">Card Đồ Họa (GPU)</option>
+                                    <option value="ram">Bộ Nhớ RAM</option>
+                                </select>
+                            </div>
+                            <div class="specs-result-box" id="specs-result-box">
+                                Loading spec structure...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Highlight 2: Native Custom JWT Security -->
+                <div class="glass-card feature-card jwt-style">
+                    <div class="feature-icon-wrapper">
+                        <i class="fa-solid fa-key"></i>
+                    </div>
+                    <div class="feature-content">
+                        <h3>Dịch Vụ JWT Tự Chế (Self-contained JWT)</h3>
+                        <p>Hệ thống tự thực hiện quá trình mã hóa/giải mã JWT bằng HMAC-SHA256, không dựa vào thư viện bên thứ ba giúp bảo mật tối ưu và kiểm soát 100% dòng đời Token.</p>
+                        
+                        <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
+                            <li><i class="fa-solid fa-check" style="color: var(--color-primary); margin-right: 0.5rem;"></i> Không phụ thuộc Package ngoài (Zero dependency JWT).</li>
+                            <li><i class="fa-solid fa-check" style="color: var(--color-primary); margin-right: 0.5rem;"></i> Cơ chế Token Blacklisting bảo mật qua bảng <code>tokens</code>.</li>
+                            <li><i class="fa-solid fa-check" style="color: var(--color-primary); margin-right: 0.5rem;"></i> Hỗ trợ Access Token ngắn hạn & Refresh Token dài hạn.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. INTERACTIVE CODE EXPLORER -->
+    <section id="code-explorer">
+        <div class="container">
+            <div class="section-header">
+                <h2><i class="fa-solid fa-code"></i> Trình Khám Phá Mã Nguồn (Code Explorer)</h2>
+                <p>Xem trực tiếp mã nguồn chất lượng cao được thiết kế theo đúng triết lý Clean Architecture.</p>
+            </div>
+
+            <!-- Fake IDE -->
+            <div class="ide-container scroll-reveal scroll-reveal-fallback">
+                <div class="ide-header">
+                    <div class="ide-dots">
+                        <div class="ide-dot red"></div>
+                        <div class="ide-dot yellow"></div>
+                        <div class="ide-dot green"></div>
+                    </div>
+                    <div class="ide-title" id="ide-title-file">
+                        <i class="fa-solid fa-file-code" style="color: var(--color-primary)"></i> routes/api.php
+                    </div>
+                    <div class="ide-actions">
+                        <i class="fa-solid fa-ellipsis"></i>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="ide-tabs">
+                    <div class="ide-tab active" data-file="routes">
+                        <i class="fa-brands fa-php"></i> routes/api.php
+                    </div>
+                    <div class="ide-tab" data-file="controller">
+                        <i class="fa-brands fa-php"></i> ProductController.php
+                    </div>
+                    <div class="ide-tab" data-file="service">
+                        <i class="fa-brands fa-php"></i> ProductService.php
+                    </div>
+                    <div class="ide-tab" data-file="jwt">
+                        <i class="fa-brands fa-php"></i> JwtService.php
+                    </div>
+                </div>
+
+                <!-- Code Content area -->
+                <div class="ide-code-wrapper">
+                    <!-- File 1: routes -->
+                    <pre class="ide-code active" id="code-routes"><code><span class="token comment">&lt;?php
+
+// routes/api.php - Định tuyến chuẩn RESTful API với các lớp phân quyền và JWT</span>
+<span class="token keyword">use</span> <span class="token class">App\Http\Controllers\Api\V1\ProductController</span>;
+<span class="token keyword">use</span> <span class="token class">Illuminate\Support\Facades\Route</span>;
+
+<span class="token class">Route</span>::<span class="token function">prefix</span>(<span class="token string">'v1'</span>)-><span class="token function">group</span>(<span class="token keyword">function</span> () {
+    
+    <span class="token class">Route</span>::<span class="token function">prefix</span>(<span class="token string">'products'</span>)-><span class="token function">group</span>(<span class="token keyword">function</span> () {
+        <span class="token comment">// Quản lý tồn kho & sản phẩm - Dành riêng cho ADMIN, STAFF</span>
+        <span class="token class">Route</span>::<span class="token function">get</span>(<span class="token string">'management'</span>, [<span class="token class">ProductController</span>::<span class="token keyword">class</span>, <span class="token string">'management'</span>])
+            -><span class="token function">middleware</span>([<span class="token string">'jwt'</span>, <span class="token string">'role:ADMIN,STAFF'</span>]);
+
+        <span class="token comment">// APIs công khai (Public)</span>
+        <span class="token class">Route</span>::<span class="token function">get</span>(<span class="token string">''</span>, [<span class="token class">ProductController</span>::<span class="token keyword">class</span>, <span class="token string">'index'</span>]);
+        <span class="token class">Route</span>::<span class="token function">get</span>(<span class="token string">'{product}'</span>, [<span class="token class">ProductController</span>::<span class="token keyword">class</span>, <span class="token string">'show'</span>]);
+        
+        <span class="token comment">// APIs chỉnh sửa sản phẩm - Dành riêng cho ADMIN</span>
+        <span class="token class">Route</span>::<span class="token function">post</span>(<span class="token string">''</span>, [<span class="token class">ProductController</span>::<span class="token keyword">class</span>, <span class="token string">'store'</span>])
+            -><span class="token function">middleware</span>([<span class="token string">'jwt'</span>, <span class="token string">'role:ADMIN'</span>]);
+        <span class="token class">Route</span>::<span class="token function">put</span>(<span class="token string">'{product}'</span>, [<span class="token class">ProductController</span>::<span class="token keyword">class</span>, <span class="token string">'update'</span>])
+            -><span class="token function">middleware</span>([<span class="token string">'jwt'</span>, <span class="token string">'role:ADMIN'</span>]);
+    });
+});</code></pre>
+
+                    <!-- File 2: Controller -->
+                    <pre class="ide-code" id="code-controller"><code><span class="token comment">&lt;?php
+
+// app/Http/Controllers/Api/V1/ProductController.php - Skinny Controller điều phối</span>
+<span class="token keyword">namespace</span> <span class="token class">App\Http\Controllers\Api\V1</span>;
+
+<span class="token keyword">use</span> <span class="token class">App\Http\Requests\Products\ProductRequest</span>;
+<span class="token keyword">use</span> <span class="token class">App\Http\Resources\ProductResource</span>;
+<span class="token keyword">use</span> <span class="token class">App\Services\ProductService</span>;
+<span class="token keyword">use</span> <span class="token class">App\Services\ApiResponseService</span>;
+<span class="token keyword">use</span> <span class="token class">Illuminate\Http\JsonResponse</span>;
+
+<span class="token keyword">class</span> <span class="token class">ProductController</span>
+{
+    <span class="token comment">// Dependency Injection các Service liên quan vào constructor</span>
+    <span class="token keyword">public</span> <span class="token keyword">function</span> <span class="token function">__construct</span>(
+        <span class="token keyword">private</span> <span class="token class">ApiResponseService</span> <span class="token variable">$response</span>, 
+        <span class="token keyword">private</span> <span class="token class">ProductService</span> <span class="token variable">$productService</span>
+    ) {}
+
+    <span class="token keyword">public</span> <span class="token keyword">function</span> <span class="token function">store</span>(<span class="token class">ProductRequest</span> <span class="token variable">$request</span>): <span class="token class">JsonResponse</span>
+    {
+        <span class="token comment">// Validate đã tự động thực thi bởi Form Request, chỉ gọi Service xử lý nghiệp vụ</span>
+        <span class="token variable">$product</span> = <span class="token variable">$this</span>-><span class="token variable">productService</span>-><span class="token function">create</span>(<span class="token variable">$request</span>-><span class="token function">validated</span>());
+
+        <span class="token keyword">return</span> <span class="token variable">$this</span>-><span class="token variable">response</span>-><span class="token function">success</span>(
+            <span class="token string">'Tạo sản phẩm thành công'</span>, 
+            (<span class="token keyword">new</span> <span class="token class">ProductResource</span>(<span class="token variable">$product</span>))-><span class="token function">toArray</span>(<span class="token variable">$request</span>), 
+            <span class="token class">201</span>
+        );
+    }
+}</code></pre>
+
+                    <!-- File 3: Service -->
+                    <pre class="ide-code" id="code-service"><code><span class="token comment">&lt;?php
+
+// app/Services/ProductService.php - Chứa Business Logic nghiệp vụ</span>
+<span class="token keyword">namespace</span> <span class="token class">App\Services</span>;
+
+<span class="token keyword">use</span> <span class="token class">App\Models\Product</span>;
+<span class="token keyword">use</span> <span class="token class">Illuminate\Support\Facades\DB</span>;
+
+<span class="token keyword">class</span> <span class="token class">ProductService</span>
+{
+    <span class="token keyword">public</span> <span class="token keyword">function</span> <span class="token function">create</span>(<span class="token keyword">array</span> <span class="token variable">$data</span>): <span class="token class">Product</span>
+    {
+        <span class="token comment">// Đảm bảo an toàn giao dịch database khi lưu thông tin và thuộc tính động JSON</span>
+        <span class="token keyword">return</span> <span class="token class">DB</span>::<span class="token function">transaction</span>(<span class="token keyword">function</span> () <span class="token keyword">use</span> (<span class="token variable">$data</span>) {
+            <span class="token variable">$product</span> = <span class="token class">Product</span>::<span class="token function">create</span>([
+                <span class="token string">'name'</span> => <span class="token variable">$data</span>[<span class="token string">'name'</span>],
+                <span class="token string">'price'</span> => <span class="token variable">$data</span>[<span class="token string">'price'</span>],
+                <span class="token string">'quantity'</span> => <span class="token variable">$data</span>[<span class="token string">'quantity'</span>],
+                <span class="token string">'category_id'</span> => <span class="token variable">$data</span>[<span class="token string">'category_id'</span>],
+                <span class="token string">'specifications'</span> => <span class="token variable">$data</span>[<span class="token string">'specifications'</span>] ?? <span class="token keyword">null</span>,
+                <span class="token string">'attributes'</span> => <span class="token variable">$data</span>[<span class="token string">'attributes'</span>] ?? <span class="token keyword">null</span>,
+            ]);
+
+            <span class="token comment">// Tự động cập nhật lịch sử Log tồn kho ban đầu</span>
+            <span class="token variable">$product</span>-><span class="token function">inventoryLogs</span>()-><span class="token function">create</span>([
+                <span class="token string">'change_type'</span> => <span class="token string">'IN'</span>,
+                <span class="token string">'quantity_change'</span> => <span class="token variable">$data</span>[<span class="token string">'quantity'</span>],
+                <span class="token string">'reason'</span> => <span class="token string">'Khởi tạo sản phẩm mới'</span>,
+                <span class="token string">'performed_by'</span> => <span class="token function">auth</span>()-><span class="token function">id</span>(),
+            ]);
+
+            <span class="token keyword">return</span> <span class="token variable">$product</span>;
+        });
+    }
+}</code></pre>
+
+                    <!-- File 4: JWT Service -->
+                    <pre class="ide-code" id="code-jwt"><code><span class="token comment">&lt;?php
+
+// app/Services/JwtService.php - Dịch vụ JWT tự chế bảo mật</span>
+<span class="token keyword">namespace</span> <span class="token class">App\Services</span>;
+
+<span class="token keyword">use</span> <span class="token class">App\Models\User</span>;
+
+<span class="token keyword">class</span> <span class="token class">JwtService</span>
+{
+    <span class="token keyword">public</span> <span class="token keyword">function</span> <span class="token function">createAccessToken</span>(<span class="token class">User</span> <span class="token variable">$user</span>): <span class="token keyword">string</span>
+    {
+        <span class="token keyword">return</span> <span class="token variable">$this</span>-><span class="token function">encode</span>([
+            <span class="token string">'sub'</span> => <span class="token variable">$user</span>-><span class="token variable">username</span>,
+            <span class="token string">'user_id'</span> => <span class="token variable">$user</span>-><span class="token variable">id</span>,
+            <span class="token string">'role'</span> => <span class="token variable">$user</span>-><span class="token variable">role</span>-><span class="token variable">name</span>,
+            <span class="token string">'exp'</span> => <span class="token function">time</span>() + <span class="token function">config</span>(<span class="token string">'shop.jwt_expiration_seconds'</span>),
+            <span class="token string">'type'</span> => <span class="token string">'access'</span>,
+        ]);
+    }
+
+    <span class="token keyword">private</span> <span class="token keyword">function</span> <span class="token function">encode</span>(<span class="token keyword">array</span> <span class="token variable">$payload</span>): <span class="token keyword">string</span>
+    {
+        <span class="token variable">$header</span> = [
+            <span class="token string">'typ'</span> => <span class="token string">'JWT'</span>,
+            <span class="token string">'alg'</span> => <span class="token function">config</span>(<span class="token string">'shop.jwt_algorithm'</span>),
+        ];
+        <span class="token variable">$encodedHeader</span> = <span class="token variable">$this</span>-><span class="token function">base64UrlEncode</span>(<span class="token function">json_encode</span>(<span class="token variable">$header</span>));
+        <span class="token variable">$encodedPayload</span> = <span class="token variable">$this</span>-><span class="token function">base64UrlEncode</span>(<span class="token function">json_encode</span>(<span class="token variable">$payload</span>));
+        
+        <span class="token comment">// Ký mã xác thực signature bằng HMAC-SHA256 bảo mật</span>
+        <span class="token variable">$signature</span> = <span class="token variable">$this</span>-><span class="token function">sign</span>(<span class="token string">"</span>{<span class="token variable">$encodedHeader</span>}<span class="token string">.</span>{<span class="token variable">$encodedPayload</span>}<span class="token string">"</span>);
+
+        <span class="token keyword">return</span> <span class="token string">"</span>{<span class="token variable">$encodedHeader</span>}<span class="token string">.</span>{<span class="token variable">$encodedPayload</span>}<span class="token string">.</span>{<span class="token variable">$signature</span>}<span class="token string">"</span>;
+    }
+
+    <span class="token keyword">private</span> <span class="token keyword">function</span> <span class="token function">sign</span>(<span class="token keyword">string</span> <span class="token variable">$value</span>): <span class="token keyword">string</span>
+    {
+        <span class="token keyword">return</span> <span class="token variable">$this</span>-><span class="token function">base64UrlEncode</span>(
+            <span class="token function">hash_hmac</span>(<span class="token string">'sha256'</span>, <span class="token variable">$value</span>, <span class="token function">config</span>(<span class="token string">'shop.jwt_secret'</span>), <span class="token boolean">true</span>)
+        );
+    }
+}</code></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="container">
+            <p>Trang thông tin & Trực quan hóa kiến trúc Backend PHP (Laravel API).</p>
+            <p class="credits"><i class="fa-solid fa-code"></i> Thiết kế bởi Antigravity AI Engine</p>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT FOR INTERACTION AND ANIMATION -->
+    <script>
+        // 1. DATA AND LOGIC FOR REQUEST LIFECYCLE STEPS
+        const stepsData = {
+            1: {
+                title: "Client Request",
+                badge: "HTTP Layer",
+                desc: "Trình duyệt hoặc Mobile App của khách hàng gửi một HTTP Request lên backend (ví dụ: yêu cầu thêm Card màn hình RTX 4090 vào giỏ hàng). Payload được định dạng bằng JSON đính kèm tiêu đề Authorization chứa Token JWT xác thực.",
+                features: ["JSON Payload", "HTTPS", "REST API"],
+                file: "frontend/src/services/api.js",
+                icon: "fa-laptop-code"
+            },
+            2: {
+                title: "API Routes",
+                badge: "Routing Layer",
+                desc: "Hệ thống tiếp nhận Request tại routes/api.php. Endpoint sẽ ánh xạ URL tương ứng (ví dụ: v1/cart/items) và lọc nhóm tiền tố API, đảm bảo trỏ đúng phân hệ điều hướng.",
+                features: ["API Prefix", "V1 Versioning", "Route Grouping"],
+                file: "backend-php/routes/api.php",
+                icon: "fa-route"
+            },
+            3: {
+                title: "Security Middleware",
+                badge: "Security Layer",
+                desc: "Request đi qua JwtMiddleware. Tại đây, hệ thống tự động bóc tách mã JWT trong Header, kiểm tra thời gian hết hạn, tính hợp lệ của chữ ký (signature) và kiểm chứng vai trò Role (ADMIN, STAFF, CUSTOMER) có khớp với phân quyền API hay không.",
+                features: ["Token Revocation Check", "JWT Decode", "Role-Based Access Control"],
+                file: "backend-php/app/Http/Middleware/JwtMiddleware.php",
+                icon: "fa-user-shield"
+            },
+            4: {
+                title: "Form Requests Validation",
+                badge: "Validation Layer",
+                desc: "Dữ liệu JSON đầu vào được chuyển qua lớp validation riêng biệt (Form Request). Lớp này bảo vệ cơ sở dữ liệu bằng cách chặn đứng các lỗi sai định dạng, SQL Injection, hay thiếu trường dữ liệu bắt buộc ngay lập tức và trả về mã lỗi 422.",
+                features: ["Regex Product Spec", "Strict Validated Data", "Consistent JSON Validation Failures"],
+                file: "backend-php/app/Http/Requests/Cart/AddItemRequest.php",
+                icon: "fa-list-check"
+            },
+            5: {
+                title: "Lean V1 Controllers",
+                badge: "Controller Layer",
+                desc: "Khi dữ liệu đã hoàn toàn sạch sẽ, Controller tiếp quản. Đóng vai trò là người điều phối giao thông, Controller không thực hiện tính toán mà chỉ chuyển giao thông tin sang lớp Service tương ứng xử lý để giữ mã nguồn cực kỳ dễ đọc.",
+                features: ["Skinny Controller", "Dependency Injection", "Lean Routing Action"],
+                file: "backend-php/app/Http/Controllers/Api/V1/CartController.php",
+                icon: "fa-gamepad"
+            },
+            6: {
+                title: "Domain Services",
+                badge: "Service Layer",
+                desc: "Service xử lý toàn bộ logic nghiệp vụ thực tế (Business Logic) như kiểm tra xem số lượng RTX 4090 trong kho có đủ không, trừ kho tạm thời, cập nhật giỏ hàng hoặc áp dụng mã giảm giá. Toàn bộ logic giao dịch chạy trong Database Transaction để đảm bảo tính toàn vẹn.",
+                features: ["Business Transactions", "Stock Inventory Adjustments", "Complex calculations"],
+                file: "backend-php/app/Services/CartService.php",
+                icon: "fa-gear"
+            },
+            7: {
+                title: "Eloquent Models & DB",
+                badge: "Database Layer",
+                desc: "Eloquent ORM chuyển đổi câu lệnh thành truy vấn SQL tương ứng. Model ánh xạ trực tiếp các bảng cấu trúc quan hệ (Carts, CartItems, Products) giúp lưu trữ dữ liệu an toàn, ngăn chặn hoàn toàn lỗi SQL Injection.",
+                features: ["Active Record ORM", "Cascade On Delete", "JSON Casting Specifications"],
+                file: "backend-php/app/Models/CartItem.php",
+                icon: "fa-database"
+            },
+            8: {
+                title: "API Resources & Response",
+                badge: "Presentation Layer",
+                desc: "Kết quả trả về từ DB được đóng gói vào API Resource để loại bỏ dữ liệu thừa, định dạng lại định kiểu ngày tháng và cấu trúc thành JSON chuẩn hóa thống nhất giúp Frontend dễ dàng giải nén và hiển thị cho người dùng.",
+                features: ["JSON Transformation", "Unified Payload Wrap", "Paginated Resource Format"],
+                file: "backend-php/app/Http/Resources/CartResource.php",
+                icon: "fa-reply-all"
+            }
+        };
+
+        // 2. LIFECYCLE INTERACTION
+        const flowSteps = document.querySelectorAll('.flow-step');
+        const detIcon = document.getElementById('det-icon');
+        const detTitle = document.getElementById('det-title');
+        const detBadge = document.getElementById('det-badge');
+        const detDesc = document.getElementById('det-desc');
+        const detFeatures = document.getElementById('det-features');
+        const detFile = document.getElementById('det-file');
+
+        flowSteps.forEach(step => {
+            step.addEventListener('click', () => {
+                // Update active class on steps
+                flowSteps.forEach(s => s.classList.remove('active'));
+                step.classList.add('active');
+
+                // Load step data
+                const stepNum = step.getAttribute('data-step');
+                const data = stepsData[stepNum];
+
+                // Animate panel transition
+                const panel = document.querySelector('.flow-details-panel');
+                panel.style.opacity = '0';
+                panel.style.transform = 'translateY(15px)';
+
+                setTimeout(() => {
+                    detIcon.innerHTML = `<i class="fa-solid ${data.icon}"></i>`;
+                    detTitle.innerText = data.title;
+                    detBadge.innerText = data.badge;
+                    detDesc.innerText = data.desc;
+                    detFile.innerHTML = `<i class="fa-solid fa-file-code"></i> ${data.file}`;
+                    
+                    // Features badges
+                    detFeatures.innerHTML = '';
+                    data.features.forEach(feat => {
+                        const b = document.createElement('span');
+                        b.className = 'badge badge-violet';
+                        b.innerText = feat;
+                        detFeatures.appendChild(b);
+                    });
+
+                    // Reveal again
+                    panel.style.opacity = '1';
+                    panel.style.transform = 'translateY(0)';
+                }, 200);
+            });
+        });
+
+        // Add CSS transition properties dynamically to details panel
+        document.querySelector('.flow-details-panel').style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+
+        // 3. INTERACTIVE DYNAMIC SPECS DEMO
+        const specsSelect = document.getElementById('category-demo-select');
+        const specsResultBox = document.getElementById('specs-result-box');
+
+        const specsTemplates = {
+            cpu: {
+                category: "Vi Xử Lý (CPU)",
+                attribute_definitions: [
+                    { code: "cores", display_name: "Số Nhân", data_type: "INTEGER", input_type: "NUMBER" },
+                    { code: "threads", display_name: "Số Luồng", data_type: "INTEGER", input_type: "NUMBER" },
+                    { code: "base_clock", display_name: "Xung cơ bản", data_type: "DECIMAL", input_type: "TEXT", unit: "GHz" },
+                    { code: "socket", display_name: "Chuẩn Socket", data_type: "STRING", input_type: "SELECT", options: ["LGA1700", "AM5", "LGA1851"] }
+                ],
+                product_specifications_stored_json: {
+                    cores: 16,
+                    threads: 24,
+                    base_clock: 3.4,
+                    socket: "LGA1700"
+                }
+            },
+            gpu: {
+                category: "Card Đồ Họa (GPU)",
+                attribute_definitions: [
+                    { code: "vram", display_name: "Dung Lượng VRAM", data_type: "INTEGER", input_type: "NUMBER", unit: "GB" },
+                    { code: "vram_type", display_name: "Chuẩn VRAM", data_type: "STRING", input_type: "SELECT", options: ["GDDR6", "GDDR6X", "HBM3"] },
+                    { code: "power_consumption", display_name: "Công Suất Tiêu Thụ", data_type: "INTEGER", input_type: "NUMBER", unit: "W" }
+                ],
+                product_specifications_stored_json: {
+                    vram: 24,
+                    vram_type: "GDDR6X",
+                    power_consumption: 450
+                }
+            },
+            ram: {
+                category: "Bộ Nhớ RAM",
+                attribute_definitions: [
+                    { code: "ram_capacity", display_name: "Dung Lượng RAM", data_type: "INTEGER", input_type: "NUMBER", unit: "GB" },
+                    { code: "ram_bus", display_name: "Tốc độ Bus", data_type: "INTEGER", input_type: "NUMBER", unit: "MHz" },
+                    { code: "ram_generation", display_name: "Thế hệ RAM", data_type: "STRING", input_type: "SELECT", options: ["DDR4", "DDR5"] }
+                ],
+                product_specifications_stored_json: {
+                    ram_capacity: 32,
+                    ram_bus: 5600,
+                    ram_generation: "DDR5"
+                }
+            }
+        };
+
+        function updateSpecsDemo() {
+            const val = specsSelect.value;
+            const data = specsTemplates[val];
+            
+            // Format beautifully in JSON layout with custom color tokens
+            let formattedHtml = `<span class="token comment">// Bảng attribute_definitions định nghĩa cấu trúc động cho nhóm ${data.category}:</span>\n`;
+            formattedHtml += `<span class="token keyword">Attributes Definitions</span> = [\n`;
+            data.attribute_definitions.forEach(attr => {
+                formattedHtml += `    { <span class="token string">"${attr.code}"</span>: ${attr.display_name} (${attr.data_type}) ${attr.unit ? `[Đơn vị: ${attr.unit}]` : ''} },\n`;
+            });
+            formattedHtml += `];\n\n`;
+            
+            formattedHtml += `<span class="token comment">// Dữ liệu Specifications được lưu dưới dạng JSON trong một sản phẩm cụ thể:</span>\n`;
+            formattedHtml += `<span class="token keyword">products</span>.<span class="token function">specifications</span> = ${JSON.stringify(data.product_specifications_stored_json, null, 4)};`;
+            
+            specsResultBox.innerHTML = formattedHtml;
+        }
+
+        specsSelect.addEventListener('change', updateSpecsDemo);
+        updateSpecsDemo(); // Run initially
+
+        // 4. IDE TABS AND CODE VIEWER
+        const ideTabs = document.querySelectorAll('.ide-tab');
+        const ideCodes = document.querySelectorAll('.ide-code');
+        const ideTitleFile = document.getElementById('ide-title-file');
+
+        ideTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                ideTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                const targetFile = tab.getAttribute('data-file');
+                
+                // Hide all codes, show active code
+                ideCodes.forEach(code => code.classList.remove('active'));
+                
+                if (targetFile === 'routes') {
+                    document.getElementById('code-routes').classList.add('active');
+                    ideTitleFile.innerHTML = `<i class="fa-solid fa-file-code" style="color: var(--color-primary)"></i> routes/api.php`;
+                } else if (targetFile === 'controller') {
+                    document.getElementById('code-controller').classList.add('active');
+                    ideTitleFile.innerHTML = `<i class="fa-solid fa-file-code" style="color: var(--color-secondary)"></i> ProductController.php`;
+                } else if (targetFile === 'service') {
+                    document.getElementById('code-service').classList.add('active');
+                    ideTitleFile.innerHTML = `<i class="fa-solid fa-file-code" style="color: var(--color-success)"></i> ProductService.php`;
+                } else if (targetFile === 'jwt') {
+                    document.getElementById('code-jwt').classList.add('active');
+                    ideTitleFile.innerHTML = `<i class="fa-solid fa-file-code" style="color: var(--color-primary)"></i> JwtService.php`;
+                }
+            });
+        });
+
+        // 5. STICKY NAVIGATION LINK ACTIVE STATE CHANGING ON SCROLL
+        const sections = document.querySelectorAll('section');
+        const navAnchorTags = document.querySelectorAll('.nav-links a');
+
+        window.addEventListener('scroll', () => {
+            let currentActive = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (pageYOffset >= (sectionTop - 150)) {
+                    currentActive = section.getAttribute('id');
+                }
+            });
+
+            navAnchorTags.forEach(anchor => {
+                anchor.classList.remove('active');
+                if (anchor.getAttribute('href') === `#${currentActive}`) {
+                    anchor.classList.add('active');
+                }
+            });
+        });
+
+        // 6. PROGRESSIVE ENHANCEMENT - FALLBACK SCROLL-REVEAL USING INTERSECTION OBSERVER
+        if (!CSS.supports('(animation-timeline: view()) and (animation-range: entry)')) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, {
+                threshold: 0.15 // Reveal when 15% is visible
+            });
+
+            document.querySelectorAll('.scroll-reveal-fallback').forEach(el => {
+                observer.observe(el);
+            });
+        } else {
+            // Remove fallback classes if CSS animation-timeline is natively supported
+            document.querySelectorAll('.scroll-reveal-fallback').forEach(el => {
+                el.classList.remove('scroll-reveal-fallback');
+            });
+        }
+    </script>
+</body>
+</html>

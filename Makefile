@@ -1,4 +1,4 @@
-.PHONY: dev backend backend-php frontend install install-backend install-frontend stop win
+.PHONY: dev backend frontend install install-backend install-frontend stop
 
 # Chạy cả backend + frontend
 dev:
@@ -8,14 +8,6 @@ dev:
 # Backend FastAPI
 backend:
 	cd backend-fastapi && uvicorn app.main:app --reload --port 8000
-
-# Backend PHP (Laravel) - DB chạy trên VPS
-backend-php:
-	cd backend-php && php artisan serve --port=8080
-
-# Windows: setup + chạy PHP backend + frontend (1 lệnh xong hết)
-win:
-	cmd /c run-windows.bat
 
 # Frontend Vite
 frontend:
