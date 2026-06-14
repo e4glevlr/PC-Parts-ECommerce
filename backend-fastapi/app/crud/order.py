@@ -8,9 +8,11 @@ from app.core.exceptions import ResourceNotFoundException, BadRequestException
 from app.models import Order, OrderItem, Cart, CartItem, Product, User, Promotion
 
 VALID_STATUSES = {"PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"}
-VAT_RATE = Decimal("0.1")
-SHIPPING_THRESHOLD = Decimal("10000000")
-SHIPPING_FEE = Decimal("30000")
+
+# Quy tắc tính giá đơn hàng
+VAT_RATE = Decimal("0.1")                 # VAT 10%
+SHIPPING_THRESHOLD = Decimal("10000000")  # miễn phí ship cho đơn từ 10 triệu
+SHIPPING_FEE = Decimal("30000")           # phí ship mặc định 30k
 
 
 def get_order_by_id(db: Session, order_id: int) -> Order:
@@ -51,10 +53,17 @@ def get_orders_by_status(db: Session, status: str, page: int, size: int):
     return items, total
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# ★ CHECKOUT: giỏ hàng → đơn hàng, tất cả trong 1 transaction atomic
+#   Giá = tiền hàng + VAT 10% + phí ship (miễn phí cho đơn từ 10 triệu)
+#   Hết hàng giữa chừng → exception → rollback toàn bộ, kho không bị âm
+# ═══════════════════════════════════════════════════════════════════════
+
 def create_order_from_cart(db: Session, user_id: int, shipping_address: str,
                            notes: Optional[str] = None, shipping_phone: Optional[str] = None,
                            customer_name: Optional[str] = None, customer_email: Optional[str] = None,
                            promotion_id: Optional[int] = None) -> Order:
+    # Bước 1 — Lấy giỏ hàng, từ chối nếu trống
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise ResourceNotFoundException("Người dùng", "id", user_id)
@@ -65,6 +74,7 @@ def create_order_from_cart(db: Session, user_id: int, shipping_address: str,
     if not cart_items:
         raise BadRequestException("Giỏ hàng đang trống")
 
+    # Bước 2 — Tính giá: tiền hàng + VAT 10% + phí ship
     subtotal = sum(Decimal(str(ci.product.price)) * ci.quantity for ci in cart_items)
     tax = (subtotal * VAT_RATE).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
     shipping = Decimal("0") if subtotal >= SHIPPING_THRESHOLD else SHIPPING_FEE
@@ -77,8 +87,12 @@ def create_order_from_cart(db: Session, user_id: int, shipping_address: str,
         customer_email=customer_email or user.email,
         total_amount=float(subtotal), discount_amount=0, final_amount=float(gross),
         status="PENDING", payment_method="COD",
-        shipping_address=shipping_address, shipping_phone=shipping_phone, notes=notes,
+        shipping_address=shipping_address,
+        shipping_phone=shipping_phone or user.phone,  # DB yêu cầu NOT NULL — mặc định lấy SĐT tài khoản
+        notes=notes,
     )
+
+    # Bước 3 — Áp khuyến mãi nếu còn hiệu lực và đơn đạt giá trị tối thiểu
     if promotion_id:
         promo = db.query(Promotion).filter(Promotion.id == promotion_id).first()
         if promo and promo.is_active and promo.start_date <= datetime.utcnow() <= promo.end_date:
@@ -91,8 +105,9 @@ def create_order_from_cart(db: Session, user_id: int, shipping_address: str,
                 order.promotion_id = promotion_id
 
     db.add(order)
-    db.flush()
+    db.flush()  # lấy order.id mà chưa commit — vẫn trong cùng transaction
 
+    # Bước 4 — Trừ kho + snapshot tên/giá sản phẩm tại thời điểm mua
     for ci in cart_items:
         p = ci.product
         if not p.is_active:
@@ -103,6 +118,7 @@ def create_order_from_cart(db: Session, user_id: int, shipping_address: str,
         db.add(OrderItem(order_id=order.id, product_id=p.id, product_name=p.name,
                          quantity=ci.quantity, price=p.price))
 
+    # Bước 5 — Dọn giỏ hàng và chốt transaction
     for ci in cart_items:
         db.delete(ci)
     db.commit()

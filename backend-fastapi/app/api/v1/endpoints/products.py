@@ -8,8 +8,7 @@ from app.crud import product as product_crud
 from app.db.session import get_db
 from app.models import User, Product
 from app.schemas.product import (ProductRequest, ProductWithImageUrlsRequest, ProductResponse,
-                                  ProductImageResponse, CategoryRequest, CategoryResponse,
-                                  AttributeDefinitionRequest, AttributeDefinitionResponse)
+                                  ProductImageResponse)
 
 router = APIRouter()
 

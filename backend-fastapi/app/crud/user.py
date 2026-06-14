@@ -5,9 +5,12 @@ from typing import Optional
 from sqlalchemy import or_, func
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token
 from app.core.exceptions import BadRequestException, ResourceNotFoundException
-from app.models import User, Role, Token
+from app.models import User, Role
+
+settings = get_settings()
 
 
 def _normalize_phone(phone: Optional[str]) -> Optional[str]:
@@ -151,61 +154,23 @@ def authenticate_user(db: Session, identifier: str, password: str) -> User:
     return user
 
 
-def login(db: Session, identifier: str, password: str) -> dict:
-    user = authenticate_user(db, identifier, password)
-    access_token = create_access_token(user.id, user.username, user.role.name)
-    refresh_token = create_refresh_token(user.id, user.username)
-
-    # Save token to DB
-    from app.core.config import get_settings
-    settings = get_settings()
-    from datetime import timedelta
-    db_token = Token(
-        user_id=user.id, token=access_token, token_type="ACCESS_TOKEN",
-        expiration_date=datetime.utcnow() + timedelta(seconds=settings.JWT_EXPIRATION_SECONDS),
-        revoked=False, expired=False,
-    )
-    db.add(db_token)
-    db.commit()
-
+def _auth_result(user: User) -> dict:
+    """Cấp cặp token JWT (stateless) cho user sau khi login/register."""
     return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
+        "access_token": create_access_token(user.id, user.username, user.role.name),
+        "refresh_token": create_refresh_token(user.id, user.username),
         "token_type": "Bearer",
         "expires_in": settings.JWT_EXPIRATION_SECONDS,
         "user": user,
     }
+
+
+def login(db: Session, identifier: str, password: str) -> dict:
+    user = authenticate_user(db, identifier, password)
+    return _auth_result(user)
 
 
 def register(db: Session, username: str, email: str, password: str,
              full_name: str, phone: str, address: Optional[str] = None) -> dict:
     user = create_user(db, username, email, password, full_name, phone, address)
-    access_token = create_access_token(user.id, user.username, user.role.name)
-    refresh_token = create_refresh_token(user.id, user.username)
-
-    from app.core.config import get_settings
-    settings = get_settings()
-    from datetime import timedelta
-    db_token = Token(
-        user_id=user.id, token=access_token, token_type="ACCESS_TOKEN",
-        expiration_date=datetime.utcnow() + timedelta(seconds=settings.JWT_EXPIRATION_SECONDS),
-        revoked=False, expired=False,
-    )
-    db.add(db_token)
-    db.commit()
-
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "Bearer",
-        "expires_in": settings.JWT_EXPIRATION_SECONDS,
-        "user": user,
-    }
-
-
-def logout(db: Session, token_str: str):
-    db_token = db.query(Token).filter(Token.token == token_str).first()
-    if db_token:
-        db_token.expired = True
-        db_token.revoked = True
-        db.commit()
+    return _auth_result(user)

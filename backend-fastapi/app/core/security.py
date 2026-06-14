@@ -47,17 +47,3 @@ def decode_token(token: str) -> Optional[dict]:
         return jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
     except JWTError:
         return None
-
-
-def extract_user_id(token: str) -> Optional[int]:
-    payload = decode_token(token)
-    if payload:
-        return payload.get("user_id")
-    return None
-
-
-def extract_username(token: str) -> Optional[str]:
-    payload = decode_token(token)
-    if payload:
-        return payload.get("sub")
-    return None

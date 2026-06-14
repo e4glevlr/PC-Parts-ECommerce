@@ -1,12 +1,11 @@
 from datetime import datetime
-from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import or_, func, and_, cast, Numeric, text
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ResourceNotFoundException, BadRequestException
-from app.models import Product, Category, ProductImage, InventoryLog, User, AttributeDefinition
+from app.models import Product, Category, ProductImage, InventoryLog, User
 
 
 def get_product_by_id(db: Session, product_id: int) -> Product:
@@ -19,9 +18,7 @@ def get_product_by_id(db: Session, product_id: int) -> Product:
 def get_products(db: Session, page: int, size: int, category_ids: Optional[list[int]] = None,
                  min_price: Optional[float] = None, max_price: Optional[float] = None,
                  in_stock: Optional[bool] = None, search: Optional[str] = None,
-                 sort_by: Optional[str] = None, sort_direction: str = "asc",
-                 attr_equals: Optional[dict] = None, attr_min: Optional[dict] = None,
-                 attr_max: Optional[dict] = None):
+                 sort_by: Optional[str] = None, sort_direction: str = "asc"):
     query = db.query(Product).filter(Product.is_active == True)
 
     if category_ids:
@@ -35,19 +32,6 @@ def get_products(db: Session, page: int, size: int, category_ids: Optional[list[
     if search:
         kw = f"%{search}%"
         query = query.filter(or_(Product.name.ilike(kw), Product.description.ilike(kw)))
-
-    # Dynamic attribute filtering via JSONB
-    if attr_equals:
-        for key, values in attr_equals.items():
-            if values:
-                conditions = [Product.attributes[key].as_string() == v for v in values]
-                query = query.filter(or_(*conditions))
-    if attr_min:
-        for key, min_val in attr_min.items():
-            query = query.filter(cast(Product.attributes[key].as_string(), Numeric) >= min_val)
-    if attr_max:
-        for key, max_val in attr_max.items():
-            query = query.filter(cast(Product.attributes[key].as_string(), Numeric) <= max_val)
 
     # Sorting
     if sort_by == "price":
@@ -180,56 +164,3 @@ def update_stock(db: Session, product_id: int, new_quantity: int, reason: str, p
     db.commit()
     db.refresh(product)
     return product
-
-
-# ── Attribute Definitions ─────────────────────────────────────────────
-
-def get_attribute_definitions(db: Session, category_id: int) -> list[AttributeDefinition]:
-    return (
-        db.query(AttributeDefinition)
-        .filter(AttributeDefinition.category_id == category_id, AttributeDefinition.is_active == True)
-        .order_by(func.coalesce(AttributeDefinition.sort_order, 9999))
-        .all()
-    )
-
-
-def create_attribute_definition(db: Session, category_id: int, **kwargs) -> AttributeDefinition:
-    category = db.query(Category).filter(Category.id == category_id).first()
-    if not category:
-        raise ResourceNotFoundException("Danh mục", "id", category_id)
-    if db.query(AttributeDefinition).filter(
-        AttributeDefinition.category_id == category_id,
-        func.lower(AttributeDefinition.code) == kwargs["code"].lower()
-    ).first():
-        raise BadRequestException(f"Attribute code '{kwargs['code']}' đã tồn tại cho danh mục này")
-
-    attr_def = AttributeDefinition(category_id=category_id, **kwargs)
-    db.add(attr_def)
-    db.commit()
-    db.refresh(attr_def)
-    return attr_def
-
-
-def update_attribute_definition(db: Session, attr_id: int, category_id: int, **kwargs) -> AttributeDefinition:
-    attr_def = db.query(AttributeDefinition).filter(
-        AttributeDefinition.id == attr_id, AttributeDefinition.category_id == category_id
-    ).first()
-    if not attr_def:
-        raise ResourceNotFoundException("Thuộc tính", "id", attr_id)
-    for k, v in kwargs.items():
-        if v is not None and hasattr(attr_def, k):
-            setattr(attr_def, k, v)
-    attr_def.updated_at = datetime.utcnow()
-    db.commit()
-    db.refresh(attr_def)
-    return attr_def
-
-
-def delete_attribute_definition(db: Session, attr_id: int, category_id: int):
-    attr_def = db.query(AttributeDefinition).filter(
-        AttributeDefinition.id == attr_id, AttributeDefinition.category_id == category_id
-    ).first()
-    if not attr_def:
-        raise ResourceNotFoundException("Thuộc tính", "id", attr_id)
-    attr_def.is_active = False
-    db.commit()

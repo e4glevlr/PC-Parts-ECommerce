@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import decode_token
 from app.db.session import get_db
-from app.models import User, Token
+from app.models import User
 
 security_scheme = HTTPBearer(auto_error=False)
 
@@ -18,15 +18,9 @@ def get_current_user(
     if credentials is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Yêu cầu xác thực")
 
-    token_str = credentials.credentials
-    payload = decode_token(token_str)
+    payload = decode_token(credentials.credentials)
     if payload is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token không hợp lệ hoặc đã hết hạn")
-
-    # Check token is not revoked in DB
-    db_token = db.query(Token).filter(Token.token == token_str, Token.revoked == False, Token.expired == False).first()
-    if db_token is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token đã bị thu hồi")
 
     user_id = payload.get("user_id")
     user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
@@ -34,18 +28,6 @@ def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Người dùng không tồn tại hoặc đã bị khóa")
 
     return user
-
-
-def get_optional_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
-    db: Session = Depends(get_db),
-) -> Optional[User]:
-    if credentials is None:
-        return None
-    try:
-        return get_current_user(credentials, db)
-    except HTTPException:
-        return None
 
 
 class RoleChecker:

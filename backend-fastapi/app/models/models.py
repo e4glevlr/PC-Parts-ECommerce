@@ -35,24 +35,7 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     role: Mapped["Role"] = relationship(back_populates="users", lazy="joined")
-    tokens: Mapped[list["Token"]] = relationship(back_populates="user", lazy="select")
     cart: Mapped["Cart | None"] = relationship(back_populates="user", uselist=False, lazy="select")
-
-
-# ── Token ──────────────────────────────────────────────────────────────
-
-class Token(Base):
-    __tablename__ = "tokens"
-
-    id: Mapped[int] = mapped_column(BigInteger, Sequence("tokens_seq"), primary_key=True)
-    token: Mapped[str] = mapped_column(String(500), unique=True, nullable=False)
-    token_type: Mapped[str] = mapped_column(String(50), nullable=False, default="ACCESS_TOKEN")
-    expiration_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    expired: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-
-    user: Mapped["User"] = relationship(back_populates="tokens", lazy="joined")
 
 
 # ── Category ───────────────────────────────────────────────────────────
@@ -70,7 +53,6 @@ class Category(Base):
 
     parent_category: Mapped["Category | None"] = relationship(remote_side="Category.id", lazy="joined")
     products: Mapped[list["Product"]] = relationship(back_populates="category", lazy="select")
-    attribute_definitions: Mapped[list["AttributeDefinition"]] = relationship(back_populates="category", lazy="select")
 
 
 # ── Product ────────────────────────────────────────────────────────────
@@ -124,28 +106,6 @@ class ProductImage(Base):
     product: Mapped["Product"] = relationship(back_populates="images", lazy="select")
 
 
-# ── AttributeDefinition ───────────────────────────────────────────────
-
-class AttributeDefinition(Base):
-    __tablename__ = "attribute_definitions"
-    __table_args__ = (UniqueConstraint("category_id", "code", name="uq_attrdef_category_code"),)
-
-    id: Mapped[int] = mapped_column(BigInteger, Sequence("attributes_seq"), primary_key=True)
-    category_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("categories.id", ondelete="CASCADE"), nullable=False)
-    code: Mapped[str] = mapped_column(String(100), nullable=False)
-    display_name: Mapped[str] = mapped_column(String(200), nullable=False)
-    data_type: Mapped[str] = mapped_column(String(20), nullable=False)
-    input_type: Mapped[str] = mapped_column(String(30), nullable=False)
-    unit: Mapped[str | None] = mapped_column(String(50))
-    sort_order: Mapped[int | None] = mapped_column(Integer)
-    options: Mapped[dict | None] = mapped_column(JSON)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    category: Mapped["Category"] = relationship(back_populates="attribute_definitions", lazy="joined")
-
-
 # ── Cart ───────────────────────────────────────────────────────────────
 
 class Cart(Base):
@@ -194,7 +154,7 @@ class Order(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="PENDING")
     payment_method: Mapped[str] = mapped_column(String(20), default="COD")
     shipping_address: Mapped[str] = mapped_column(Text, nullable=False)
-    shipping_phone: Mapped[str | None] = mapped_column(String(20))
+    shipping_phone: Mapped[str] = mapped_column(String(20), nullable=False)
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
