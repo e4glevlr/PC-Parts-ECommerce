@@ -28,8 +28,11 @@ class CartItemResponse(BaseModel):
     product_name: str
     product_price: float
     quantity: int
+    sub_total: float = 0
     product_image_url: Optional[str] = None
+    is_product_active: bool = True
     created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -37,9 +40,9 @@ class CartItemResponse(BaseModel):
 class CartResponse(BaseModel):
     id: int
     user_id: int
-    items: list[CartItemResponse] = []
+    cart_items: list[CartItemResponse] = []
     total_items: int = 0
-    total_price: float = 0
+    total_amount: float = 0
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

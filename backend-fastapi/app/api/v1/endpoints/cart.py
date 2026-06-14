@@ -11,20 +11,25 @@ router = APIRouter()
 
 def _to_cart_response(c: Cart) -> dict:
     items = []
-    total_price = 0.0
+    total_amount = 0.0
+    total_items = 0
     for ci in (c.cart_items or []):
         p = ci.product
         price = float(p.price) if p else 0
+        sub_total = price * ci.quantity
         items.append(CartItemResponse(
             id=ci.id, product_id=ci.product_id,
             product_name=p.name if p else "?", product_price=price,
-            quantity=ci.quantity, product_image_url=p.primary_image_url if p else None,
-            created_at=ci.created_at,
+            quantity=ci.quantity, sub_total=sub_total,
+            product_image_url=p.primary_image_url if p else None,
+            is_product_active=p.is_active if p else False,
+            created_at=ci.created_at, updated_at=ci.updated_at,
         ).model_dump())
-        total_price += price * ci.quantity
+        total_amount += sub_total
+        total_items += ci.quantity
     return CartResponse(
-        id=c.id, user_id=c.user_id, items=items,
-        total_items=len(items), total_price=total_price,
+        id=c.id, user_id=c.user_id, cart_items=items,
+        total_items=total_items, total_amount=total_amount,
         created_at=c.created_at, updated_at=c.updated_at,
     ).model_dump()
 
