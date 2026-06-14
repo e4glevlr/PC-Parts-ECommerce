@@ -20,7 +20,7 @@ def _to_order_response(o: Order) -> dict:
         order_items=[OrderItemResponse(
             id=oi.id, product_id=oi.product_id, product_name=oi.product_name,
             quantity=oi.quantity, price=float(oi.price),
-            primary_image_url=oi.product.primary_image_url if oi.product else None,
+            product_image_url=oi.product.primary_image_url if oi.product else None,
         ) for oi in (o.order_items or [])],
         created_at=o.created_at, updated_at=o.updated_at,
     ).model_dump()

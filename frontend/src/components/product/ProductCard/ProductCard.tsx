@@ -270,7 +270,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           color="text.secondary"
           sx={{ textTransform: 'uppercase', letterSpacing: 0.4 }}
         >
-          {product.category.name}
+          {product.category?.name ?? product.category_name ?? ''}
         </Typography>
 
         {/* Product Name */}

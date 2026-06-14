@@ -25,7 +25,7 @@ class ProductWithImageUrlsRequest(ProductRequest):
 
 class ProductImageResponse(BaseModel):
     id: int
-    image_url: str
+    file_path: str
     is_primary: bool
 
     model_config = ConfigDict(from_attributes=True)
@@ -43,7 +43,7 @@ class ProductResponse(BaseModel):
     specifications: Optional[dict] = None
     attributes: Optional[dict] = None
     images: list[ProductImageResponse] = []
-    primary_image_url: Optional[str] = None
+    image_url: Optional[str] = None
     is_active: bool
     is_low_stock: bool = False
     created_at: Optional[datetime] = None

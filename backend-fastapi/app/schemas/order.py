@@ -23,7 +23,7 @@ class OrderItemResponse(BaseModel):
     product_name: str
     quantity: int
     price: float
-    primary_image_url: Optional[str] = None
+    product_image_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

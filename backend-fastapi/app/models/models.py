@@ -234,3 +234,23 @@ class Promotion(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ── AttributeDefinition (dynamic category filter schema) ────────────────
+
+class AttributeDefinition(Base):
+    __tablename__ = "attribute_definitions"
+    __table_args__ = (UniqueConstraint("category_id", "code", name="uq_attrdef_category_code"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, Sequence("attributes_seq"), primary_key=True)
+    category_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("categories.id", ondelete="CASCADE"), nullable=False)
+    code: Mapped[str] = mapped_column(String(100), nullable=False)
+    display_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    data_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    input_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    unit: Mapped[str | None] = mapped_column(String(50))
+    sort_order: Mapped[int | None] = mapped_column(Integer)
+    options: Mapped[dict | None] = mapped_column(JSON)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -17,6 +17,12 @@ COPY . .
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
+# AI advisor (Gemini) config baked at build time
+ARG VITE_GEMINI_API_KEY
+ARG VITE_GEMINI_MODEL
+ENV VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
+ENV VITE_GEMINI_MODEL=${VITE_GEMINI_MODEL}
+
 # Build static assets (type-check + bundle)
 RUN npm run build
 

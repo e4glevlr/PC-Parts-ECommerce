@@ -2,11 +2,11 @@
 from app.models.models import (
     Role, User, Category, Product, ProductImage,
     Cart, CartItem, Order, OrderItem,
-    Comment, InventoryLog, Promotion,
+    Comment, InventoryLog, Promotion, AttributeDefinition,
 )
 
 __all__ = [
     "Role", "User", "Category", "Product", "ProductImage",
     "Cart", "CartItem", "Order", "OrderItem",
-    "Comment", "InventoryLog", "Promotion",
+    "Comment", "InventoryLog", "Promotion", "AttributeDefinition",
 ]

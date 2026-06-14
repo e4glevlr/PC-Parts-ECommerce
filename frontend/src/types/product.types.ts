@@ -16,6 +16,8 @@ export interface Product {
     is_primary: boolean;
   }>;
   category: Category;
+  category_id?: number;
+  category_name?: string;
   specifications: Record<string, any>;
   // Dynamic per-category attributes (JSONB in backend)
   attributes?: Record<string, any>;

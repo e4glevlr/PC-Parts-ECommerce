@@ -18,7 +18,7 @@ def _to_cart_response(c: Cart) -> dict:
         items.append(CartItemResponse(
             id=ci.id, product_id=ci.product_id,
             product_name=p.name if p else "?", product_price=price,
-            quantity=ci.quantity, primary_image_url=p.primary_image_url if p else None,
+            quantity=ci.quantity, product_image_url=p.primary_image_url if p else None,
             created_at=ci.created_at,
         ).model_dump())
         total_price += price * ci.quantity

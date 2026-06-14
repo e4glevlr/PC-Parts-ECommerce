@@ -19,9 +19,9 @@ def _to_product_response(p: Product) -> dict:
         quantity=p.quantity, low_stock_threshold=p.low_stock_threshold,
         category_id=p.category_id, category_name=p.category.name if p.category else None,
         specifications=p.specifications, attributes=p.attributes,
-        images=[ProductImageResponse(id=img.id, image_url=img.image_url, is_primary=img.is_primary)
+        images=[ProductImageResponse(id=img.id, file_path=img.image_url, is_primary=img.is_primary)
                 for img in (p.images or [])],
-        primary_image_url=p.primary_image_url, is_active=p.is_active,
+        image_url=p.primary_image_url, is_active=p.is_active,
         is_low_stock=p.is_low_stock, created_at=p.created_at, updated_at=p.updated_at,
     ).model_dump()
 

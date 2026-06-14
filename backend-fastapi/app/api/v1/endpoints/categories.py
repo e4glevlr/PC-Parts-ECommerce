@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.api.dependencies import require_admin
 from app.db.session import get_db
-from app.models import User, Category
+from app.models import User, Category, AttributeDefinition
 from app.core.exceptions import ResourceNotFoundException, BadRequestException
 
 router = APIRouter()
@@ -21,6 +21,17 @@ def get_one(cat_id: int, db: Session = Depends(get_db)):
     if not c:
         raise ResourceNotFoundException("Danh mục", "id", cat_id)
     return {"status_code": 200, "message": "OK", "data": _fmt(c)}
+
+
+@router.get("/{cat_id}/filters")
+def get_filters(cat_id: int, db: Session = Depends(get_db)):
+    defs = (
+        db.query(AttributeDefinition)
+        .filter(AttributeDefinition.category_id == cat_id, AttributeDefinition.is_active == True)
+        .order_by(AttributeDefinition.sort_order.asc().nullslast(), AttributeDefinition.id.asc())
+        .all()
+    )
+    return {"status_code": 200, "message": "OK", "data": [_fmt_attr(d) for d in defs]}
 
 
 @router.post("", status_code=201)
@@ -62,4 +73,13 @@ def _fmt(c: Category) -> dict:
         "parent_category_id": c.parent_category_id, "is_active": c.is_active,
         "created_at": str(c.created_at) if c.created_at else None,
         "updated_at": str(c.updated_at) if c.updated_at else None,
+    }
+
+
+def _fmt_attr(d: AttributeDefinition) -> dict:
+    return {
+        "id": d.id, "category_id": d.category_id, "code": d.code,
+        "display_name": d.display_name, "data_type": d.data_type,
+        "input_type": d.input_type, "unit": d.unit, "sort_order": d.sort_order,
+        "options": d.options, "is_active": d.is_active,
     }

@@ -28,7 +28,7 @@ class CartItemResponse(BaseModel):
     product_name: str
     product_price: float
     quantity: int
-    primary_image_url: Optional[str] = None
+    product_image_url: Optional[str] = None
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
