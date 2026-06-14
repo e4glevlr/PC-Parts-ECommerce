@@ -2,8 +2,9 @@ from fastapi import HTTPException, status
 
 
 class ResourceNotFoundException(HTTPException):
-    def __init__(self, resource: str = "Resource", field: str = "id", value=None):
-        detail = f"{resource} không tìm thấy với {field}: '{value}'"
+    def __init__(self, resource: str = "Dữ liệu", field: str = "id", value=None):
+        # Thông báo thân thiện, không lộ tên trường kỹ thuật (vd "id") cho người dùng cuối
+        detail = f"Không tìm thấy {resource.lower()}"
         super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
 
 

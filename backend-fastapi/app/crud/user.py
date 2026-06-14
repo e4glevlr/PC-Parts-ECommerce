@@ -73,7 +73,7 @@ def create_user(db: Session, username: str, email: str, password: str, full_name
     phone = _normalize_phone(phone)
 
     if db.query(User).filter(User.username == username).first():
-        raise BadRequestException("Username đã tồn tại")
+        raise BadRequestException("Tên đăng nhập đã tồn tại")
     if db.query(User).filter(User.email == email).first():
         raise BadRequestException("Email đã tồn tại")
     if phone and db.query(User).filter(User.phone == phone).first():
@@ -82,7 +82,7 @@ def create_user(db: Session, username: str, email: str, password: str, full_name
     if role_id is None:
         role = db.query(Role).filter(Role.name == "CUSTOMER").first()
         if not role:
-            raise BadRequestException("Default role CUSTOMER not found")
+            raise BadRequestException("Hệ thống chưa cấu hình vai trò mặc định cho khách hàng. Vui lòng liên hệ quản trị viên.")
         role_id = role.id
 
     user = User(

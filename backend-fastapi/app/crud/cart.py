@@ -28,15 +28,17 @@ def add_item_to_cart(db: Session, user_id: int, product_id: int, quantity: int) 
     if not product:
         raise ResourceNotFoundException("Sản phẩm", "id", product_id)
     if not product.is_active:
-        raise BadRequestException("Sản phẩm hiện không hoạt động")
+        raise BadRequestException("Sản phẩm hiện không còn được bán")
     if product.quantity < quantity:
-        raise BadRequestException(f"Không đủ hàng: {product.name}")
+        raise BadRequestException(f"Sản phẩm '{product.name}' không đủ hàng (chỉ còn {product.quantity} sản phẩm)")
 
     existing = db.query(CartItem).filter(CartItem.cart_id == cart.id, CartItem.product_id == product_id).first()
     if existing:
         new_qty = existing.quantity + quantity
         if product.quantity < new_qty:
-            raise BadRequestException(f"Không đủ hàng: {product.name}")
+            raise BadRequestException(
+                f"Sản phẩm '{product.name}' không đủ hàng (chỉ còn {product.quantity}, "
+                f"giỏ hàng của bạn đang có {existing.quantity})")
         existing.quantity = new_qty
         existing.updated_at = datetime.utcnow()
     else:
@@ -54,11 +56,12 @@ def update_cart_item(db: Session, user_id: int, item_id: int, quantity: int) -> 
     if not item:
         raise ResourceNotFoundException("Mục giỏ hàng", "id", item_id)
     if item.cart_id != cart.id:
-        raise BadRequestException("Mục giỏ hàng không thuộc người dùng này")
+        raise BadRequestException("Mục giỏ hàng này không thuộc về bạn")
     if quantity <= 0:
         raise BadRequestException("Số lượng phải lớn hơn 0")
     if item.product.quantity < quantity:
-        raise BadRequestException(f"Không đủ hàng: {item.product.name}")
+        raise BadRequestException(
+            f"Sản phẩm '{item.product.name}' không đủ hàng (chỉ còn {item.product.quantity} sản phẩm)")
 
     item.quantity = quantity
     item.updated_at = datetime.utcnow()
@@ -74,7 +77,7 @@ def remove_item_from_cart(db: Session, user_id: int, item_id: int) -> Cart:
     if not item:
         raise ResourceNotFoundException("Mục giỏ hàng", "id", item_id)
     if item.cart_id != cart.id:
-        raise BadRequestException("Mục giỏ hàng không thuộc người dùng này")
+        raise BadRequestException("Mục giỏ hàng này không thuộc về bạn")
     db.delete(item)
     cart.updated_at = datetime.utcnow()
     db.commit()

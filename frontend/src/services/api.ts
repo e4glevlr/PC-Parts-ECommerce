@@ -136,6 +136,40 @@ apiClient.interceptors.request.use(
   }
 );
 
+// Thông báo mặc định theo từng mã lỗi HTTP — dùng khi backend không trả message cụ thể
+const STATUS_MESSAGES: Record<number, string> = {
+  400: 'Yêu cầu không hợp lệ. Vui lòng kiểm tra lại thông tin đã nhập.',
+  401: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+  403: 'Bạn không có quyền thực hiện thao tác này.',
+  404: 'Không tìm thấy dữ liệu yêu cầu.',
+  408: 'Yêu cầu mất quá nhiều thời gian. Vui lòng thử lại.',
+  409: 'Dữ liệu bị xung đột. Vui lòng tải lại trang và thử lại.',
+  413: 'Tệp tải lên quá lớn. Vui lòng chọn tệp nhỏ hơn.',
+  422: 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại các trường đã nhập.',
+  429: 'Bạn thao tác quá nhanh. Vui lòng chờ giây lát rồi thử lại.',
+  500: 'Máy chủ đang gặp sự cố. Vui lòng thử lại sau ít phút.',
+  502: 'Máy chủ tạm thời không phản hồi. Vui lòng thử lại sau.',
+  503: 'Hệ thống đang bảo trì hoặc quá tải. Vui lòng thử lại sau.',
+  504: 'Máy chủ phản hồi quá lâu. Vui lòng thử lại sau.',
+};
+
+// Gộp lỗi 422 dạng mảng (FastAPI mặc định) thành một câu dễ đọc
+const summarizeValidationDetail = (detail: unknown): string | undefined => {
+  if (!Array.isArray(detail)) return undefined;
+  const parts = detail
+    .map((d: any) => {
+      const loc = Array.isArray(d?.loc)
+        ? d.loc.filter((p: unknown) => p !== 'body' && p !== 'query' && p !== 'path').join('.')
+        : '';
+      const msg = d?.msg || 'Giá trị không hợp lệ';
+      return loc ? `${loc}: ${msg}` : msg;
+    })
+    .filter(Boolean);
+  if (parts.length === 0) return undefined;
+  const head = parts.slice(0, 3).join('; ');
+  return parts.length > 3 ? `${head} (và ${parts.length - 3} lỗi khác)` : head;
+};
+
 // Response interceptor for handling common responses
 apiClient.interceptors.response.use(
   (response: AxiosResponse<ApiResponse<any>>) => {
@@ -153,9 +187,24 @@ apiClient.interceptors.response.use(
       return Promise.reject({ name: 'CanceledError', message: 'canceled' });
     }
 
+    // Không nhận được phản hồi từ máy chủ -> lỗi mạng hoặc hết thời gian chờ
+    if (!error.response) {
+      const isTimeout = error?.code === 'ECONNABORTED' || /timeout/i.test(error?.message || '');
+      const networkMessage = isTimeout
+        ? 'Máy chủ phản hồi quá lâu. Vui lòng kiểm tra kết nối mạng và thử lại.'
+        : 'Không thể kết nối tới máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.';
+      return Promise.reject({
+        status_code: 0,
+        message: networkMessage,
+        errors: undefined,
+      } as ApiErrorResponse);
+    }
+
+    const status = error.response.status;
+
     // Handle 401 Unauthorized - Token expired
     // NOTE: Automatic refresh is intentionally disabled to avoid refresh loops.
-    if (error.response?.status === 401) {
+    if (status === 401) {
       // Clear local auth state and redirect to login page.
       try { localStorage.removeItem('access_token'); } catch (_) { }
       try { localStorage.removeItem('refresh_token'); } catch (_) { }
@@ -166,13 +215,22 @@ apiClient.interceptors.response.use(
     }
 
     // Handle other errors
-    // Backend sometimes returns validation errors inside `data` (see GlobalExceptionHandler)
+    // Backend trả lỗi theo envelope {status_code, message, data}; một số trường hợp (lỗi 422
+    // mặc định của FastAPI) lại dùng `detail`. Đọc cả hai để luôn lấy được thông báo cụ thể.
     const serverData = error.response?.data || {};
     const serverErrors = serverData?.data || serverData?.errors || undefined;
+    const validationSummary = summarizeValidationDetail(serverData?.detail);
+
+    const message =
+      serverData?.message ||
+      validationSummary ||
+      (typeof serverData?.detail === 'string' ? serverData.detail : undefined) ||
+      STATUS_MESSAGES[status] ||
+      'Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.';
 
     const errorResponse: ApiErrorResponse = {
-      status_code: error.response?.status || 500,
-      message: serverData?.message || 'Đã xảy ra lỗi không mong muốn',
+      status_code: status || 500,
+      message,
       errors: serverErrors,
     };
 

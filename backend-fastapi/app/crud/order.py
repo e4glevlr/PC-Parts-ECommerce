@@ -111,9 +111,10 @@ def create_order_from_cart(db: Session, user_id: int, shipping_address: str,
     for ci in cart_items:
         p = ci.product
         if not p.is_active:
-            raise BadRequestException(f"Sản phẩm không khả dụng: {p.name}")
+            raise BadRequestException(f"Sản phẩm '{p.name}' hiện không còn được bán, vui lòng xóa khỏi giỏ hàng")
         if p.quantity < ci.quantity:
-            raise BadRequestException(f"Không đủ hàng: {p.name}")
+            raise BadRequestException(
+                f"Sản phẩm '{p.name}' không đủ hàng (chỉ còn {p.quantity}, bạn đặt {ci.quantity})")
         p.quantity -= ci.quantity
         db.add(OrderItem(order_id=order.id, product_id=p.id, product_name=p.name,
                          quantity=ci.quantity, price=p.price))
@@ -128,7 +129,8 @@ def create_order_from_cart(db: Session, user_id: int, shipping_address: str,
 
 def update_order_status(db: Session, order_id: int, status: str) -> Order:
     if status.upper() not in VALID_STATUSES:
-        raise BadRequestException(f"Trạng thái không hợp lệ: {status}")
+        raise BadRequestException(
+            f"Trạng thái đơn hàng không hợp lệ: '{status}'. Chỉ chấp nhận: {', '.join(sorted(VALID_STATUSES))}")
     order = get_order_by_id(db, order_id)
     order.status = status.upper()
     db.commit()
