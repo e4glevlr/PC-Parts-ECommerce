@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.api.dependencies import get_current_user, require_staff, require_customer
 from app.crud import order as order_crud
@@ -57,6 +58,23 @@ def get_by_status(status: str, page: int = 0, size: int = 20, db: Session = Depe
                   _: User = Depends(require_staff)):
     items, total = order_crud.get_orders_by_status(db, status, page, size)
     return {"status_code": 200, "message": "Thành công", "data": _paged(items, total, page, size)}
+
+
+@router.get("/stats")
+def order_stats(db: Session = Depends(get_db), _: User = Depends(require_staff)):
+    rows = dict(db.query(Order.status, func.count(Order.id)).group_by(Order.status).all())
+    rows = {(k or "").upper(): v for k, v in rows.items()}
+    total_revenue = db.query(func.coalesce(func.sum(Order.final_amount), 0)).filter(
+        Order.status == "DELIVERED").scalar()
+    return {"status_code": 200, "message": "OK", "data": {
+        "total_orders": sum(rows.values()),
+        "pending_orders": rows.get("PENDING", 0),
+        "processing_orders": rows.get("PROCESSING", 0),
+        "shipped_orders": rows.get("SHIPPED", 0),
+        "delivered_orders": rows.get("DELIVERED", 0),
+        "cancelled_orders": rows.get("CANCELLED", 0),
+        "total_revenue": float(total_revenue or 0),
+    }}
 
 
 @router.get("/{order_id}")

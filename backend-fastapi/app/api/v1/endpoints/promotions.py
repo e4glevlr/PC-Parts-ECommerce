@@ -55,6 +55,36 @@ def get_active(db: Session = Depends(get_db)):
     return {"status_code": 200, "message": "OK", "data": [_status(p) for p in items]}
 
 
+@router.get("/applicable")
+def get_applicable(price: float = Query(0, ge=0), db: Session = Depends(get_db)):
+    now = datetime.utcnow()
+    items = db.query(Promotion).filter(
+        Promotion.is_active == True, Promotion.start_date <= now, Promotion.end_date >= now,
+        Promotion.minimum_order_amount <= price,
+    ).all()
+    return {"status_code": 200, "message": "OK", "data": [_status(p) for p in items]}
+
+
+def _compute_discount(p: Promotion, original_price: float) -> float:
+    if p.discount_type == "PERCENTAGE":
+        discount = original_price * float(p.discount_value) / 100
+    else:  # FIXED_AMOUNT
+        discount = float(p.discount_value)
+    return round(min(discount, original_price), 2)
+
+
+@router.get("/{promo_id}/calculate-discount")
+def calculate_discount(promo_id: int, originalPrice: float = Query(..., ge=0),
+                       db: Session = Depends(get_db)):
+    p = db.query(Promotion).filter(Promotion.id == promo_id).first()
+    if not p:
+        raise ResourceNotFoundException("Khuyến mãi", "id", promo_id)
+    discount = _compute_discount(p, originalPrice)
+    return {"status_code": 200, "message": "OK", "data": {
+        "discount_amount": discount, "final_price": round(originalPrice - discount, 2),
+    }}
+
+
 @router.get("/{promo_id}")
 def get_one(promo_id: int, db: Session = Depends(get_db)):
     p = db.query(Promotion).filter(Promotion.id == promo_id).first()

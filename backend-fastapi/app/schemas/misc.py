@@ -27,6 +27,19 @@ class CommentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ── Attribute Definition Schemas ──────────────────────────────────────
+
+class AttributeDefinitionRequest(BaseModel):
+    code: str = Field(..., max_length=100)
+    display_name: str = Field(..., max_length=200)
+    data_type: str = Field(..., max_length=20)
+    input_type: str = Field(..., max_length=30)
+    unit: Optional[str] = None
+    sort_order: Optional[int] = None
+    options: Optional[dict] = None
+    is_active: Optional[bool] = True
+
+
 # ── Inventory Schemas ─────────────────────────────────────────────────
 
 class InventoryRequest(BaseModel):

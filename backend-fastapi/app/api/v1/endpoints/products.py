@@ -18,7 +18,8 @@ def _to_product_response(p: Product) -> dict:
         id=p.id, name=p.name, description=p.description, price=float(p.price),
         quantity=p.quantity, low_stock_threshold=p.low_stock_threshold,
         category_id=p.category_id, category_name=p.category.name if p.category else None,
-        specifications=p.specifications, attributes=p.attributes,
+        specifications=p.specifications if isinstance(p.specifications, dict) else None,
+        attributes=p.attributes if isinstance(p.attributes, dict) else None,
         images=[ProductImageResponse(id=img.id, file_path=img.image_url, is_primary=img.is_primary)
                 for img in (p.images or [])],
         image_url=p.primary_image_url, is_active=p.is_active,

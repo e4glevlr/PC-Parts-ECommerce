@@ -7,19 +7,19 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Proxy frontend /api/* to backend http://localhost:8080 to bypass CORS in development
+      // Proxy frontend /api/* to the FastAPI backend (port 8000) to bypass CORS in development
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
-        // No rewrite needed; '/api/v1' -> 'http://localhost:8080/api/v1'
+        // No rewrite needed; '/api/v1' -> 'http://127.0.0.1:8000/api/v1'
       },
-      // Proxy backend static resources (depends on Spring resource handlers)
+      // Proxy backend static resources (served by FastAPI)
       '/images': {
-        target: 'http://localhost:8080',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
       '/uploads': {
-        target: 'http://localhost:8080',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
     },

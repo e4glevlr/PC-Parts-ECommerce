@@ -1,10 +1,11 @@
 from typing import Optional
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from app.api.dependencies import require_admin
+from app.api.dependencies import require_admin, require_staff
 from app.db.session import get_db
 from app.models import User, Category, AttributeDefinition
 from app.core.exceptions import ResourceNotFoundException, BadRequestException
+from app.schemas.misc import AttributeDefinitionRequest
 
 router = APIRouter()
 
@@ -13,6 +14,21 @@ router = APIRouter()
 def get_all(db: Session = Depends(get_db)):
     cats = db.query(Category).filter(Category.is_active == True).all()
     return {"status_code": 200, "message": "OK", "data": [_fmt(c) for c in cats]}
+
+
+@router.get("/tree")
+def get_tree(db: Session = Depends(get_db)):
+    cats = db.query(Category).filter(Category.is_active == True).all()
+    nodes = {c.id: {"id": c.id, "name": c.name, "slug": "", "children": []} for c in cats}
+    roots = []
+    for c in cats:
+        node = nodes[c.id]
+        parent = nodes.get(c.parent_category_id)
+        if parent is not None:
+            parent["children"].append(node)
+        else:
+            roots.append(node)
+    return {"status_code": 200, "message": "OK", "data": roots}
 
 
 @router.get("/{cat_id}")
@@ -32,6 +48,51 @@ def get_filters(cat_id: int, db: Session = Depends(get_db)):
         .all()
     )
     return {"status_code": 200, "message": "OK", "data": [_fmt_attr(d) for d in defs]}
+
+
+@router.post("/{cat_id}/attributes", status_code=201)
+def create_attribute(cat_id: int, req: AttributeDefinitionRequest, db: Session = Depends(get_db),
+                     _: User = Depends(require_admin)):
+    if not db.query(Category).filter(Category.id == cat_id).first():
+        raise ResourceNotFoundException("Danh mục", "id", cat_id)
+    exists = (db.query(AttributeDefinition)
+              .filter(AttributeDefinition.category_id == cat_id, AttributeDefinition.code == req.code)
+              .first())
+    if exists:
+        raise BadRequestException(f"Thuộc tính '{req.code}' đã tồn tại trong danh mục này")
+    d = AttributeDefinition(category_id=cat_id, **req.model_dump())
+    db.add(d)
+    db.commit()
+    db.refresh(d)
+    return {"status_code": 201, "message": "Tạo thuộc tính thành công", "data": _fmt_attr(d)}
+
+
+@router.put("/{cat_id}/attributes/{attr_id}")
+def update_attribute(cat_id: int, attr_id: int, req: AttributeDefinitionRequest,
+                     db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    d = (db.query(AttributeDefinition)
+         .filter(AttributeDefinition.id == attr_id, AttributeDefinition.category_id == cat_id)
+         .first())
+    if not d:
+        raise ResourceNotFoundException("Thuộc tính", "id", attr_id)
+    for k, v in req.model_dump().items():
+        setattr(d, k, v)
+    db.commit()
+    db.refresh(d)
+    return {"status_code": 200, "message": "Cập nhật thuộc tính thành công", "data": _fmt_attr(d)}
+
+
+@router.delete("/{cat_id}/attributes/{attr_id}")
+def delete_attribute(cat_id: int, attr_id: int, db: Session = Depends(get_db),
+                     _: User = Depends(require_admin)):
+    d = (db.query(AttributeDefinition)
+         .filter(AttributeDefinition.id == attr_id, AttributeDefinition.category_id == cat_id)
+         .first())
+    if not d:
+        raise ResourceNotFoundException("Thuộc tính", "id", attr_id)
+    db.delete(d)
+    db.commit()
+    return {"status_code": 200, "message": "Xóa thuộc tính thành công"}
 
 
 @router.post("", status_code=201)

@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, require_admin, require_authenticated
+from app.core.config import get_settings
+from app.core.security import create_access_token, decode_token
+from app.core.exceptions import UnauthorizedException
 from app.crud import user as user_crud
 from app.db.session import get_db
 from app.models import User
@@ -37,6 +40,27 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
                               role=user.role.name, is_active=user.is_active),
         ).model_dump(),
     }
+
+
+@router.post("/logout")
+def logout():
+    # Stateless JWT: nothing to invalidate server-side; client clears its tokens.
+    return {"status_code": 200, "message": "Đăng xuất thành công"}
+
+
+@router.post("/refresh-token")
+def refresh_token(refreshToken: str = Query(...), db: Session = Depends(get_db)):
+    payload = decode_token(refreshToken)
+    if not payload or payload.get("type") != "refresh":
+        raise UnauthorizedException("Refresh token không hợp lệ")
+    user = db.query(User).filter(User.id == payload.get("user_id")).first()
+    if not user or not user.is_active:
+        raise UnauthorizedException("Người dùng không tồn tại hoặc đã bị khóa")
+    access_token = create_access_token(user.id, user.username, user.role.name)
+    return {"status_code": 200, "message": "Làm mới token thành công", "data": {
+        "access_token": access_token, "token_type": "Bearer",
+        "expires_in": get_settings().JWT_EXPIRATION_SECONDS,
+    }}
 
 
 @router.post("/register", status_code=201)
@@ -100,6 +124,11 @@ def get_all_users(page: int = Query(0, ge=0), size: int = Query(20, ge=1, le=100
             "first": page == 0, "last": page >= total_pages - 1,
         },
     }
+
+
+@router.get("/count")
+def count_users(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    return {"status_code": 200, "message": "OK", "data": db.query(User).count()}
 
 
 @router.get("/{user_id}")
